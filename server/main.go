@@ -28,6 +28,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		fmt.Printf("Received: %s\n", msg)
+		conn.WriteMessage(messageType, msg)
 
 		err = conn.WriteMessage(messageType, msg)
 		if err != nil {
