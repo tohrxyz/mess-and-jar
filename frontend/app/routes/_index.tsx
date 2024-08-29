@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChatMenuLayout } from "~/layout/homepage_layout";
 import { getFromStorage, saveToStorage } from "~/lib/storage";
 
@@ -39,6 +39,23 @@ const dummyMessages = [
 
 export default function Index() {
   const [username, setUsername] = useState(getFromStorage("username") ?? "");
+
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:8080/ws");
+
+    socket.addEventListener("open", (_) => {
+      socket.send("hello server");
+    });
+
+    socket.addEventListener("message", (event) => {
+      console.log(event.data)
+    })
+
+    return () => {
+      socket.close(1000, "closing")
+    }
+  }, [])
+
 
   const saveUsername = () => {
     const usernameInput = document.getElementById("set-username-input") as HTMLInputElement;
