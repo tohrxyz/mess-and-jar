@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -20,6 +19,17 @@ var (
 	mu       sync.Mutex
 )
 
+var (
+	subscribers []*websocket.Conn
+	muSub       sync.Mutex
+)
+
+func addSubscriber(conn *websocket.Conn) {
+	muSub.Lock()
+	subscribers = append(subscribers, conn)
+	muSub.Unlock()
+}
+
 func addMessage(msg string) {
 	mu.Lock()
 	messages = append(messages, msg)
@@ -34,6 +44,8 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	addSubscriber(conn)
+
 	for _, msg := range messages {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
 		if err != nil {
@@ -43,20 +55,29 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		messageType, msg, err := conn.ReadMessage()
+		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			fmt.Println("Error while reading message:", err)
 			break
 		}
 		addMessage(string(msg))
-		fmt.Printf("All of them: ", strings.Join(messages, " "))
+		// fmt.Printf("All of them: ", strings.Join(messages, " "))
 		fmt.Printf("Received: %s\n", msg)
-		conn.WriteMessage(messageType, msg)
+		// conn.WriteMessage(messageType, msg)
 
-		err = conn.WriteMessage(messageType, msg)
-		if err != nil {
-			fmt.Println("Error while writing message:", err)
-			break
+		// err = conn.WriteMessage(messageType, msg)
+		// if err != nil {
+		// 	fmt.Println("Error while writing message:", err)
+		// 	break
+		// }
+
+		for _, sub := range subscribers {
+			err := sub.WriteMessage(websocket.TextMessage, []byte(msg))
+			fmt.Println("sending to subscriber")
+
+			if err != nil {
+				fmt.Println("Error while sending to subscriber: ", err)
+			}
 		}
 	}
 }
