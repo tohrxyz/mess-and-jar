@@ -10,33 +10,6 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-const dummyMessages = [
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-  ["alice", "hey"],
-  ["bob", "hi"],
-]
-
 interface Message {
   user: string,
   message: string
@@ -57,7 +30,9 @@ export default function Index() {
 
     socket.addEventListener("message", (event) => {
       const parsedMsg = JSON.parse(event.data);
-      setMessages((prev) => [...prev, parsedMsg])
+      if (JSON.stringify(parsedMsg) !== JSON.stringify(messages[messages.length - 1])) {
+        setMessages((prev) => [...prev, parsedMsg])
+      }
     })
 
     return () => {
