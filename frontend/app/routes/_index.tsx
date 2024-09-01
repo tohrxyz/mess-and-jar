@@ -24,15 +24,12 @@ export default function Index() {
     const socket = new WebSocket("ws://localhost:8080/ws");
 
     socket.addEventListener("open", (_) => {
-      socket.send(JSON.stringify({ user: "server", message: "Hello and welcome" }));
       setWsClient(socket);
     });
 
     socket.addEventListener("message", (event) => {
       const parsedMsg = JSON.parse(event.data);
-      if (JSON.stringify(parsedMsg) !== JSON.stringify(messages[messages.length - 1])) {
-        setMessages((prev) => [...prev, parsedMsg])
-      }
+      setMessages((prev) => [...prev, parsedMsg])
     })
 
     return () => {
