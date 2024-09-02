@@ -11,8 +11,10 @@ export const meta: MetaFunction = () => {
 };
 
 interface Message {
-  user: string,
-  message: string
+  date: string;
+  room: string;
+  username: string,
+  msg: string
 }
 
 export default function Index() {
@@ -28,6 +30,29 @@ export default function Index() {
       setUsername(value);
     }
   }
+
+  useEffect(() => {
+    const query = async () => {
+      const res = await fetch("http://localhost:8090/query_messages?room=general");
+
+      if (!res.ok) {
+        console.error("Bad query req");
+      }
+
+      const data = await res.json() as Message;
+      setMessages(prev => [...prev, data])
+    }
+
+    const interval = setInterval(() => {
+      query();
+    }, 5000)
+
+    return () => clearInterval(interval);
+  }, [])
+
+  useEffect(() => {
+    console.log({messages})
+  }, [messages])
 
   return !username ? (
     <div>
