@@ -3,89 +3,71 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync"
-
-	"github.com/gorilla/websocket"
+	"strconv"
+	"time"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for simplicity
-	},
+type Message struct {
+	date     int64
+	room     string
+	username string
+	msg      string
 }
 
-var (
-	messages []string
-	mu       sync.Mutex
-)
-
-var (
-	subscribers []*websocket.Conn
-	muSub       sync.Mutex
-)
-
-func addSubscriber(conn *websocket.Conn) {
-	muSub.Lock()
-	subscribers = append(subscribers, conn)
-	muSub.Unlock()
-}
-
-func addMessage(msg string) {
-	mu.Lock()
-	messages = append(messages, msg)
-	mu.Unlock()
-}
-
-func wsEndpoint(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func parseDate(date_str string) int64 {
+	num, err := strconv.ParseInt(date_str, 10, 64)
 	if err != nil {
-		fmt.Println("Error while upgrading connection:", err)
-		return
-	}
-	defer conn.Close()
-
-	addSubscriber(conn)
-
-	for _, msg := range messages {
-		err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
-		if err != nil {
-			fmt.Println("Error sending message:", err)
-			return
-		}
+		return int64(time.Now().Second())
 	}
 
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("Error while reading message:", err)
-			break
-		}
-		addMessage(string(msg))
-		// fmt.Printf("All of them: ", strings.Join(messages, " "))
-		fmt.Printf("Received: %s\n", msg)
-		// conn.WriteMessage(messageType, msg)
+	return num
+}
 
-		// err = conn.WriteMessage(messageType, msg)
-		// if err != nil {
-		// 	fmt.Println("Error while writing message:", err)
-		// 	break
-		// }
+func send_message(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 
-		for _, sub := range subscribers {
-			err := sub.WriteMessage(websocket.TextMessage, []byte(msg))
-			fmt.Println("sending to subscriber")
+	message := Message{
+		date:     parseDate(req.FormValue("date")),
+		room:     req.FormValue("room"),
+		username: req.FormValue("username"),
+		msg:      req.FormValue("msg"),
+	}
 
-			if err != nil {
-				fmt.Println("Error while sending to subscriber: ", err)
-			}
+	fmt.Printf("%+v \n", message)
+
+	w.Write([]byte(http.StatusText(200)))
+}
+
+func query_messages(w http.ResponseWriter, req *http.Request) {
+
+	for name, headers := range req.Header {
+		for _, h := range headers {
+			fmt.Fprintf(w, "%v: %v\n", name, h)
 		}
 	}
 }
 
 func main() {
-	http.HandleFunc("/ws", wsEndpoint)
-	fmt.Println("Server started at :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Println("Error starting server:", err)
+	corsOptions := []func(h http.Handler) http.Handler{
+		func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Set the CORS headers
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+				if r.Method == "OPTIONS" {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+
+				h.ServeHTTP(w, r)
+			})
+		},
 	}
+	http.Handle("/send_message", corsOptions[0](http.HandlerFunc(send_message)))
+	http.Handle("/query_messages", corsOptions[0](http.HandlerFunc(query_messages)))
+
+	http.ListenAndServe(":8090", nil)
 }
