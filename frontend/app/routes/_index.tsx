@@ -17,25 +17,7 @@ interface Message {
 
 export default function Index() {
   const [username, setUsername] = useState(getFromStorage("username") ?? "");
-  const [wsClient, setWsClient] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([])
-
-  useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080/ws");
-
-    socket.addEventListener("open", (_) => {
-      setWsClient(socket);
-    });
-
-    socket.addEventListener("message", (event) => {
-      const parsedMsg = JSON.parse(event.data);
-      setMessages((prev) => [...prev, parsedMsg])
-    })
-
-    return () => {
-      socket.close(1000, "closing")
-    }
-  }, [])
 
 
   const saveUsername = () => {
@@ -62,7 +44,7 @@ export default function Index() {
               <Message username={msg.user} message={msg.message} key={index}/>
             ))}
           </div>
-          <SendMessage wsClient={wsClient} />
+          <SendMessage />
         </div>
       </ChatMenuLayout>
     </div>
@@ -79,15 +61,25 @@ const Message = ({ username, message}: { username: string, message: string }) =>
   )
 }
 
-const SendMessage = ({ wsClient }: { wsClient: WebSocket }) => {
+const SendMessage = () => {
   const [message, setMessage] = useState("");
   const username = getFromStorage("username");
 
-  const sendMessage = () => {
-    if (typeof wsClient !== "undefined" && wsClient) {
-      wsClient.send(JSON.stringify({ user: username, message: message }));
-      setMessage("");
+  const sendMessage = async () => {
+    const formData = new FormData;
+    formData.append("date", Date.now().toString());
+    formData.append("room", "general");
+    formData.append("username", username);
+    formData.append("msg", message);
+
+    const res = await fetch("http://localhost:8090/send_message", {
+      method: "POST",
+      body: formData
+    })
+    if (!res.ok) {
+      console.error("bad req")
     }
+    setMessage("");
   }
   return (
     <div className="flex flex-row gap-y-2 w-full">
