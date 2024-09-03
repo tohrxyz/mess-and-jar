@@ -43,5 +43,10 @@ func main() {
 		lib.Check(err)
 	}
 
+	filteredHistory, err := lib.GetChatHistoryAfterTimestamp(history, int64(3000))
+	if err != nil {
+		lib.Check(err)
+	}
 	fmt.Println(history)
+	fmt.Println(filteredHistory)
 }

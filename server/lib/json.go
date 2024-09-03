@@ -3,6 +3,7 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 func MessageToJson(val Message) (string, error) {
@@ -28,4 +29,26 @@ func StringJsonToMessage(val string) (Message, error) {
 	}
 
 	return message, nil
+}
+
+func GetChatHistoryAfterTimestamp(data string, timestamp int64) (string, error) {
+	splitted := strings.Split(data, "\n")
+	var filteredHistory []string
+
+	for _, line := range splitted {
+		if line == "" {
+			continue
+		}
+
+		message, err := StringJsonToMessage(line)
+		if err != nil {
+			return "", Check(err)
+		}
+
+		if message.Date > timestamp {
+			filteredHistory = append(filteredHistory, line)
+		}
+	}
+
+	return strings.Join(filteredHistory, "\n"), nil
 }
