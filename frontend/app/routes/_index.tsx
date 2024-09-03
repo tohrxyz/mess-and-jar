@@ -31,24 +31,24 @@ export default function Index() {
     }
   }
 
-  useEffect(() => {
-    const query = async () => {
-      const res = await fetch("http://localhost:8090/query_messages?room=general");
+  // useEffect(() => {
+  //   const query = async () => {
+  //     const res = await fetch("http://localhost:8090/query_messages?room=general");
 
-      if (!res.ok) {
-        console.error("Bad query req");
-      }
+  //     if (!res.ok) {
+  //       console.error("Bad query req");
+  //     }
 
-      const data = await res.json() as Message;
-      setMessages(prev => [...prev, data])
-    }
+  //     const data = await res.json() as Message;
+  //     setMessages(prev => [...prev, data])
+  //   }
 
-    const interval = setInterval(() => {
-      query();
-    }, 5000)
+  //   const interval = setInterval(() => {
+  //     query();
+  //   }, 5000)
 
-    return () => clearInterval(interval);
-  }, [])
+  //   return () => clearInterval(interval);
+  // }, [])
 
   useEffect(() => {
     console.log({messages})
