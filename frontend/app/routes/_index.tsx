@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useEffect, useState } from "react";
+import { Dispatch, useEffect, useState } from "react";
 import { ChatMenuLayout } from "~/layout/homepage_layout";
 import { getFromStorage, saveToStorage } from "~/lib/storage";
 
@@ -49,7 +49,7 @@ export default function Index() {
     }, 5000)
 
     return () => clearInterval(interval);
-  }, [])
+  }, [messages])
 
   useEffect(() => {
     console.log({messages})
@@ -70,7 +70,7 @@ export default function Index() {
               <Message username={msg.username} message={msg.msg} key={index}/>
             ))}
           </div>
-          <SendMessage />
+          <SendMessage setMessages={setMessages}/>
         </div>
       </ChatMenuLayout>
     </div>
@@ -87,13 +87,14 @@ const Message = ({ username, message}: { username: string, message: string }) =>
   )
 }
 
-const SendMessage = () => {
+const SendMessage = ({ setMessages }: { setMessages: Dispatch<React.SetStateAction<Message[]>>}) => {
   const [message, setMessage] = useState("");
   const username = getFromStorage("username");
 
   const sendMessage = async () => {
     const formData = new FormData;
-    formData.append("date", Date.now().toString());
+    const dateNow = Date.now().toString();
+    formData.append("date", dateNow);
     formData.append("room", "general");
     formData.append("username", username);
     formData.append("msg", message);
@@ -106,6 +107,19 @@ const SendMessage = () => {
       console.error("bad req")
     }
     setMessage("");
+
+    const query = async () => {
+      const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${Number(dateNow) - 1}`);
+
+      if (!res.ok) {
+        console.error("Bad query req");
+      }
+
+      const data = await res.json() as Message[];
+      setMessages(prev => [...prev, ...data])
+    }
+
+    query()
   }
   return (
     <div className="flex flex-row gap-y-2 w-full">
