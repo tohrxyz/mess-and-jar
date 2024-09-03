@@ -1,6 +1,9 @@
 package lib
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 func Check(e error) error {
 	if e != nil {
@@ -30,4 +33,20 @@ func WriteStringifiedJsonToFileAppend(val string, room string) error {
 	}
 
 	return nil
+}
+
+func ReadHistoryFromFile(room string) (string, error) {
+	filepath := FilepathFromRoom(room)
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		fmt.Println("Error opening file: ", err)
+		return "", Check(err)
+	}
+
+	defer f.Close()
+
+	dat, err := os.ReadFile(filepath)
+	Check(err)
+	return string(dat), nil
 }

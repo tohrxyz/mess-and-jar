@@ -1,9 +1,12 @@
 package main
 
-import "server/lib"
+import (
+	"fmt"
+	"server/lib"
+)
 
 func main() {
-	in := `{"date":129412939,"room":"general","username":"alice","msg":"hey"}`
+	// in := `{"date":129412939,"room":"general","username":"alice","msg":"hey"}`
 
 	// message := lib.Message{
 	// 	Date:     129412939,
@@ -30,7 +33,15 @@ func main() {
 	// fmt.Printf("%+v\n", message)
 	// fmt.Printf("%+v\n", parsedMsg)
 
-	err := lib.WriteStringifiedJsonToFileAppend(in, "general")
+	// err := lib.WriteStringifiedJsonToFileAppend(in, "general")
 
-	lib.Check(err)
+	// lib.Check(err)
+
+	history, err := lib.ReadHistoryFromFile("general")
+
+	if err != nil {
+		lib.Check(err)
+	}
+
+	fmt.Println(history)
 }
