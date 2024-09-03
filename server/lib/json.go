@@ -50,5 +50,9 @@ func GetChatHistoryAfterTimestamp(data string, timestamp int64) (string, error) 
 		}
 	}
 
-	return strings.Join(filteredHistory, "\n"), nil
+	return strings.Join(filteredHistory, ","), nil
+}
+
+func HistoryToJson(history string) string {
+	return "[" + history + "]"
 }

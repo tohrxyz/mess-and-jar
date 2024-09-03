@@ -49,4 +49,8 @@ func main() {
 	}
 	fmt.Println(history)
 	fmt.Println(filteredHistory)
+
+	filteredHistoryToJson := lib.HistoryToJson(filteredHistory)
+
+	fmt.Println(filteredHistoryToJson)
 }
