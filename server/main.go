@@ -44,9 +44,23 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 }
 
 func query_messages(w http.ResponseWriter, req *http.Request) {
-	// most_recent_from_user := req.URL.Query().Get("date")
-	// room := req.URL.Query().Get("room")
+	timestamp := req.URL.Query().Get("timestamp")
+	room := req.URL.Query().Get("room")
 
+	history, err := lib.ReadHistoryFromFile(room)
+	if err != nil {
+		// error handling
+		fmt.Println("Can't read history: ", err)
+	}
+
+	filteredHistory, err := lib.GetChatHistoryAfterTimestamp(history, parseDate(timestamp))
+	if err != nil {
+		// error handling
+		fmt.Println("Can't filter history: ", err)
+	}
+	toJson := lib.HistoryToJson(filteredHistory)
+
+	w.Write([]byte(toJson))
 }
 
 func main() {

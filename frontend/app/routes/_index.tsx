@@ -31,24 +31,25 @@ export default function Index() {
     }
   }
 
-  // useEffect(() => {
-  //   const query = async () => {
-  //     const res = await fetch("http://localhost:8090/query_messages?room=general");
+  useEffect(() => {
+    const query = async () => {
+      const mostRecentTimestamp = messages.at(messages.length - 1)?.date ?? 0
+      const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${mostRecentTimestamp}`);
 
-  //     if (!res.ok) {
-  //       console.error("Bad query req");
-  //     }
+      if (!res.ok) {
+        console.error("Bad query req");
+      }
 
-  //     const data = await res.json() as Message;
-  //     setMessages(prev => [...prev, data])
-  //   }
+      const data = await res.json() as Message[];
+      setMessages(prev => [...prev, ...data])
+    }
 
-  //   const interval = setInterval(() => {
-  //     query();
-  //   }, 5000)
+    const interval = setInterval(() => {
+      query();
+    }, 5000)
 
-  //   return () => clearInterval(interval);
-  // }, [])
+    return () => clearInterval(interval);
+  }, [])
 
   useEffect(() => {
     console.log({messages})
@@ -66,7 +67,7 @@ export default function Index() {
         <div className="w-full flex flex-col gap-y-2 p-3 min-h-[500px] justify-between">
           <div className="flex flex-col gap-y-2 max-h-[500px] overflow-y-scroll">
             { messages.map((msg, index) => (
-              <Message username={msg.user} message={msg.message} key={index}/>
+              <Message username={msg.username} message={msg.msg} key={index}/>
             ))}
           </div>
           <SendMessage />
