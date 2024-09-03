@@ -15,12 +15,21 @@ func main() {
 		Msg:      "hey",
 	}
 
-	json, err := lib.MessageToJson((message))
+	// json, err := lib.MessageToJson((message))
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Println(in)
+	// fmt.Println(json)
+
+	parsedMsg, err := lib.StringJsonToMessage(in)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(in)
-	fmt.Println(json)
+	fmt.Printf("%+v\n", message)
+	fmt.Printf("%+v\n", parsedMsg)
 }

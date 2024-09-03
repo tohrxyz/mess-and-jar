@@ -16,3 +16,16 @@ func MessageToJson(val Message) (string, error) {
 	jsonString := string(jsonBytes)
 	return jsonString, nil
 }
+
+func StringJsonToMessage(val string) (Message, error) {
+	bytes := []byte(val)
+
+	var message Message
+	err := json.Unmarshal(bytes, &message)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return message, nil
+}
