@@ -76,7 +76,7 @@ export default function Index() {
         <div className="w-full flex flex-col gap-y-2 p-3 min-h-[500px] justify-between">
           <div className="flex flex-col gap-y-2 max-h-[500px] overflow-y-scroll" ref={scrollbarRef} >
             { messages.map((msg, index) => (
-              <Message username={msg.username} message={msg.msg} key={index}/>
+              <Message date={msg.date} username={msg.username} message={msg.msg} key={index}/>
             ))}
           </div>
           <SendMessage messages={messages} setMessages={setMessages}/>
@@ -87,9 +87,19 @@ export default function Index() {
 }
 
 
-const Message = ({ username, message}: { username: string, message: string }) => {
+const Message = ({ date, username, message}: { date: string, username: string, message: string }) => {
+  const formatTimestamp = (timestamp: string) => {
+    // const day = new Date(parseInt(timestamp)).getDate();
+    // const monthAsString = new Date(parseInt(timestamp)).toLocaleString('default', { month: 'long' });
+    // const time = new Date(parseInt(timestamp)).toLocaleTimeString();
+    // return `${day}/${monthAsString} ${time}`;
+
+    return new Date(parseInt(timestamp)).toLocaleString();
+  }
+  
   return (
-    <div className="flex gap-x-2">
+    <div className="flex gap-x-2 items-center justify-start">
+      <span className="text-gray-100 text-xs">{formatTimestamp(date)}</span>
       <strong>{ username }: </strong>
       <span>{ message }</span>
     </div>
