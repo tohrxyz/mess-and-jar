@@ -110,9 +110,21 @@ const SendMessage = ({ messages, setMessages }: { messages: Message[], setMessag
 
     queryMsgs(messages, setMessages)
   }
+
+  const handleEnter = (event: KeyboardEvent) => {
+    if (event.key === "Enter" && message.length > 0) {
+      sendMessage();
+    }
+  }
+
   return (
     <div className="flex flex-row gap-y-2 w-full">
-      <input value={message} onChange={(val) => setMessage(val.target.value)} className="w-full p-1"/>
+      <input 
+        value={message} 
+        onChange={(val) => setMessage(val.target.value)} 
+        className="w-full p-1"
+        onKeyDown={(e) => handleEnter(e)}
+      />
       <button className="px-3 p-2 bg-blue-400 text-white" onClick={() => sendMessage()}>Send</button>
     </div>
   )
