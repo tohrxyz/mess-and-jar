@@ -84,10 +84,10 @@ export default function Index() {
   ) : (
     <div className="font-sans p-4 w-full text-center">
       <div className="flex flex-row gap-x-4 w-full justify-between">
-        <h1 className="font-bold text-xl">{ username }</h1>
-        <div className="flex flex-row gap-x-4">
-          <input type="text" placeholder="Enter your new name" id="set-username-input" className="hidden rounded-t-xl px-2 py-1 bg-slate-600 text-white" />
-          <button className="px-2 py-1 bg-blue-500 rounded-t-xl text-white" onClick={() => changeUsername()}>Change User</button>
+        <h1 className="font-bold text-xl text-white rounded-t-xl px-3 py-2 bg-blue-500">{ username }</h1>
+        <div className="flex flex-row">
+          <input type="text" placeholder="Enter your new name" id="set-username-input" className="rounded-tl-xl px-2 py-1 bg-slate-600 text-white" />
+          <button className="px-2 py-1 bg-blue-500 rounded-tr-xl text-white" onClick={() => changeUsername()}>Change User</button>
         </div>
       </div>
       <ChatMenuLayout>
@@ -129,6 +129,9 @@ const SendMessage = ({ messages, setMessages }: { messages: Message[], setMessag
   const username = getFromStorage("username");
 
   const sendMessage = async () => {
+    if (message.length === 0) {
+      return;
+    }
     const formData = new FormData;
     const dateNow = Date.now().toString();
     formData.append("date", dateNow);
