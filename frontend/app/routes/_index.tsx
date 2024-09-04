@@ -19,7 +19,8 @@ interface Message {
 }
 const queryMsgs = async (messages: Message[], setMessages: Dispatch<React.SetStateAction<Message[]>>) => {
   const mostRecentTimestamp = messages.at(messages.length - 1)?.date ?? 0
-  const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${mostRecentTimestamp}`);
+  const room = getFromStorage("room") ?? "general";
+  const res = await fetch(`http://localhost:8090/query_messages?room=${room}&timestamp=${mostRecentTimestamp}`);
 
   if (!res.ok) {
     console.error("Bad query req");
@@ -35,12 +36,16 @@ export default function Index() {
   const scrollbarRef = useRef<HTMLDivElement>(null)
 
 
-  const saveUsername = () => {
+  const saveData = () => {
     const usernameInput = document.getElementById("set-username-input") as HTMLInputElement;
-    const value = usernameInput?.value;
-    if (typeof value !== "undefined") {
-      saveToStorage("username", value);
-      setUsername(value);
+    const usernameVal = usernameInput?.value;
+    const roomInput = document.getElementById("set-room-input") as HTMLInputElement;
+    const roomVal = roomInput?.value;
+    if (typeof usernameVal !== "undefined") {
+      saveToStorage("username", usernameVal);
+      saveToStorage("room", roomVal);
+      setUsername(usernameVal);
+      setMessages([]);
     }
   }
 
@@ -79,7 +84,9 @@ export default function Index() {
   return !username ? (
     <div>
       <input placeholder="Enter your username" id="set-username-input"/>
-      <button onClick={() => saveUsername()}>Save username</button>
+      <br />
+      <input placeholder="Enter room name" id="set-room-input"/>
+      <button onClick={() => saveData()}>Save data</button>
     </div>
   ) : (
     <div className="font-sans p-4 w-full text-center">
@@ -129,6 +136,7 @@ const Message = ({ date, username, message}: { date: string, username: string, m
 const SendMessage = ({ messages, setMessages }: { messages: Message[], setMessages: Dispatch<React.SetStateAction<Message[]>>}) => {
   const [message, setMessage] = useState("");
   const username = getFromStorage("username");
+  const room = getFromStorage("room");
 
   const sendMessage = async () => {
     if (message.length === 0) {
@@ -137,7 +145,7 @@ const SendMessage = ({ messages, setMessages }: { messages: Message[], setMessag
     const formData = new FormData;
     const dateNow = Date.now().toString();
     formData.append("date", dateNow);
-    formData.append("room", "general");
+    formData.append("room", room ?? "general");
     formData.append("username", username);
     formData.append("msg", message);
 
