@@ -61,6 +61,13 @@ export default function Index() {
     }
   }
 
+  const nukeSession = () => {
+    localStorage.removeItem("username");
+    localStorage.removeItem("room");
+    setUsername("");
+    setMessages([]);
+  }
+
   useEffect(() => {
     const interval = setInterval(() => {
       queryMsgs(messages, setMessages);
@@ -91,7 +98,10 @@ export default function Index() {
   ) : (
     <div className="font-sans p-4 w-full text-center">
       <div className="flex flex-row gap-x-4 w-full justify-between">
-        <h1 className="font-bold text-xl text-white rounded-t-xl px-3 py-2 bg-blue-500">{ username }</h1>
+        <div className="flex flex-row">
+          <h1 className="font-bold text-xl text-white rounded-tl-xl px-3 py-2 bg-blue-500">{ username }</h1>
+          <button className="px-3 py-2 bg-red-600 text-white rounded-tr-xl" onClick={() => nukeSession()}><strong>Nuke</strong></button>
+        </div>
         <div className="flex flex-row">
           <input type="text" placeholder="Enter your new name" id="set-username-input" className="rounded-tl-xl px-2 py-1 bg-slate-800 text-white" />
           <button className="px-2 py-1 bg-blue-500 rounded-tr-xl text-white" onClick={() => changeUsername()}>Change User</button>
