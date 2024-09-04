@@ -89,11 +89,12 @@ export default function Index() {
 	}, [messages])
 
   return !username ? (
-    <div>
-      <input placeholder="Enter your username" id="set-username-input"/>
-      <br />
-      <input placeholder="Enter room name" id="set-room-input"/>
-      <button onClick={() => saveData()}>Save data</button>
+    <div className="flex flex-col gap-y-3 bg-slate-700 p-3 rounded-xl">
+      <span className="text-gray-300 text-md">Username</span>
+      <input placeholder="Enter your username" id="set-username-input" className="px-3 py-1 text-white bg-slate-500 rounded-md"/>
+      <span className="text-gray-300 text-md">Room</span>
+      <input placeholder="Enter room name" id="set-room-input" className="px-3 py-1 bg-slate-500 rounded-md text-white"/>
+      <button onClick={() => saveData()} className="w-full bg-blue-500 px-2 rounded-md py-2 text-white font-bold">Save data</button>
     </div>
   ) : (
     <div className="font-sans p-4 w-full text-center">
