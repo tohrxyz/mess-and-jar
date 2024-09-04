@@ -17,7 +17,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-[100vh]">
+      <body className="min-h-[100vh] bg-slate-600">
         <HomepageLayout>
           {children}
         </HomepageLayout>

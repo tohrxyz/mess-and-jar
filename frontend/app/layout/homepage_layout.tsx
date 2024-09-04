@@ -10,7 +10,7 @@ export const HomepageLayout = ({ children }: { children: ReactNode }) => {
 
 export const ChatMenuLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <section className="bg-gray-400">
+    <section className="bg-slate-800">
       { children }
     </section>
   )
