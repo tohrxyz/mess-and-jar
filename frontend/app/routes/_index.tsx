@@ -44,6 +44,18 @@ export default function Index() {
     }
   }
 
+  const changeUsername = () => {
+    const usernameInput = document.getElementById("set-username-input") as HTMLInputElement;
+    const value = usernameInput?.value;
+    if (value && value.length > 0) {
+      saveToStorage("username", value);
+      setUsername(value);
+      username.style.display = "hidden";
+    } else {
+      usernameInput.style.display = "flex";
+    }
+  }
+
   useEffect(() => {
     const interval = setInterval(() => {
       queryMsgs(messages, setMessages);
@@ -71,7 +83,13 @@ export default function Index() {
     </div>
   ) : (
     <div className="font-sans p-4 w-full text-center">
-      <h1>Welcome { username }!</h1>
+      <div className="flex flex-row gap-x-4 w-full justify-between">
+        <h1 className="font-bold text-xl">{ username }</h1>
+        <div className="flex flex-row gap-x-4">
+          <input type="text" placeholder="Enter your new name" id="set-username-input" className="hidden rounded-t-xl px-2 py-1 bg-slate-600 text-white" />
+          <button className="px-2 py-1 bg-blue-500 rounded-t-xl text-white" onClick={() => changeUsername()}>Change User</button>
+        </div>
+      </div>
       <ChatMenuLayout>
         <div className="w-full flex flex-col gap-y-2 p-3 min-h-[500px] justify-between">
           <div className="flex flex-col gap-y-2 max-h-[500px] overflow-y-scroll" ref={scrollbarRef} >
