@@ -10,11 +10,23 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+
 interface Message {
   date: string;
   room: string;
   username: string,
   msg: string
+}
+const queryMsgs = async (messages: Message[], setMessages: Dispatch<React.SetStateAction<Message[]>>) => {
+  const mostRecentTimestamp = messages.at(messages.length - 1)?.date ?? 0
+  const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${mostRecentTimestamp}`);
+
+  if (!res.ok) {
+    console.error("Bad query req");
+  }
+
+  const data = await res.json() as Message[];
+  setMessages(prev => [...prev, ...data])
 }
 
 export default function Index() {
@@ -32,28 +44,16 @@ export default function Index() {
   }
 
   useEffect(() => {
-    const query = async () => {
-      const mostRecentTimestamp = messages.at(messages.length - 1)?.date ?? 0
-      const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${mostRecentTimestamp}`);
-
-      if (!res.ok) {
-        console.error("Bad query req");
-      }
-
-      const data = await res.json() as Message[];
-      setMessages(prev => [...prev, ...data])
-    }
-
     const interval = setInterval(() => {
-      query();
+      queryMsgs(messages, setMessages);
     }, 5000)
 
     return () => clearInterval(interval);
   }, [messages])
 
   useEffect(() => {
-    console.log({messages})
-  }, [messages])
+    queryMsgs(messages, setMessages)
+  }, [])
 
   return !username ? (
     <div>
@@ -70,7 +70,7 @@ export default function Index() {
               <Message username={msg.username} message={msg.msg} key={index}/>
             ))}
           </div>
-          <SendMessage setMessages={setMessages}/>
+          <SendMessage messages={messages} setMessages={setMessages}/>
         </div>
       </ChatMenuLayout>
     </div>
@@ -87,7 +87,7 @@ const Message = ({ username, message}: { username: string, message: string }) =>
   )
 }
 
-const SendMessage = ({ setMessages }: { setMessages: Dispatch<React.SetStateAction<Message[]>>}) => {
+const SendMessage = ({ messages, setMessages }: { messages: Message[], setMessages: Dispatch<React.SetStateAction<Message[]>>}) => {
   const [message, setMessage] = useState("");
   const username = getFromStorage("username");
 
@@ -108,18 +108,7 @@ const SendMessage = ({ setMessages }: { setMessages: Dispatch<React.SetStateActi
     }
     setMessage("");
 
-    const query = async () => {
-      const res = await fetch(`http://localhost:8090/query_messages?room=general&timestamp=${Number(dateNow) - 1}`);
-
-      if (!res.ok) {
-        console.error("Bad query req");
-      }
-
-      const data = await res.json() as Message[];
-      setMessages(prev => [...prev, ...data])
-    }
-
-    query()
+    queryMsgs(messages, setMessages)
   }
   return (
     <div className="flex flex-row gap-y-2 w-full">
