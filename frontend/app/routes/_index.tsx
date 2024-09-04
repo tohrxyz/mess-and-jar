@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { Dispatch, useEffect, useState } from "react";
+import { Dispatch, useEffect, useRef, useState } from "react";
 import { ChatMenuLayout } from "~/layout/homepage_layout";
 import { getFromStorage, saveToStorage } from "~/lib/storage";
 
@@ -32,6 +32,7 @@ const queryMsgs = async (messages: Message[], setMessages: Dispatch<React.SetSta
 export default function Index() {
   const [username, setUsername] = useState(getFromStorage("username") ?? "");
   const [messages, setMessages] = useState<Message[]>([])
+  const scrollbarRef = useRef<HTMLDivElement>(null)
 
 
   const saveUsername = () => {
@@ -55,6 +56,14 @@ export default function Index() {
     queryMsgs(messages, setMessages)
   }, [])
 
+  useEffect(() => {
+		const logContainer = scrollbarRef.current;
+
+    if (logContainer) {
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+	}, [messages])
+
   return !username ? (
     <div>
       <input placeholder="Enter your username" id="set-username-input"/>
@@ -65,7 +74,7 @@ export default function Index() {
       <h1>Welcome { username }!</h1>
       <ChatMenuLayout>
         <div className="w-full flex flex-col gap-y-2 p-3 min-h-[500px] justify-between">
-          <div className="flex flex-col gap-y-2 max-h-[500px] overflow-y-scroll">
+          <div className="flex flex-col gap-y-2 max-h-[500px] overflow-y-scroll" ref={scrollbarRef} >
             { messages.map((msg, index) => (
               <Message username={msg.username} message={msg.msg} key={index}/>
             ))}
