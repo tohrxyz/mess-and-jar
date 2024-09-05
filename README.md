@@ -9,10 +9,12 @@ Golang server
 
 #### Checklist
 - [x] Set your own username
-- [ ] Multi-user
-- [ ] Multi-room
+- [x] Change user
+- [x] Change room
 - [x] Send messages to others
 - [ ] Encryption
 - [x] Chat history
 
-<img width="1800" alt="image" src="https://github.com/user-attachments/assets/00fcda41-43fb-425e-8bbe-088680d8069e">
+<img width="593" alt="image" src="https://github.com/user-attachments/assets/e97fdfc7-4082-47b3-8f44-630d41d5f9bb">
+<img width="1701" alt="image" src="https://github.com/user-attachments/assets/fc0d706f-6a97-4a6d-ba3b-5df7ca0c81db">
+
