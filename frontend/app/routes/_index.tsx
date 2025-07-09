@@ -1,4 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
+import { useSearchParams } from "@remix-run/react";
 import { Dispatch, useEffect, useRef, useState } from "react";
 import { ChatMenuLayout } from "~/layout/homepage_layout";
 import { getFromStorage, saveToStorage } from "~/lib/storage";
@@ -30,11 +31,25 @@ const queryMsgs = async (messages: Message[], setMessages: Dispatch<React.SetSta
   setMessages(prev => [...prev, ...data])
 }
 
+const generateRoomId = () => {
+  const roomId = crypto.randomUUID();
+  const roomInput = document.getElementById("set-room-input") as HTMLInputElement;
+  roomInput.value = roomId;
+}
+
 export default function Index() {
   const [username, setUsername] = useState(getFromStorage("username") ?? "");
   const [messages, setMessages] = useState<Message[]>([])
   const scrollbarRef = useRef<HTMLDivElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams({ room_id: getFromStorage("room") ?? "" })
 
+  useEffect(() => {
+    const roomId = searchParams.get("room_id");
+    const input = document.getElementById("set-room-input") as HTMLInputElement;
+    if (input?.value === "" && roomId) {
+      input.value = roomId;
+    }
+  }, [searchParams])
 
   const saveData = () => {
     const usernameInput = document.getElementById("set-username-input") as HTMLInputElement;
@@ -47,6 +62,7 @@ export default function Index() {
       setUsername(usernameVal);
       setMessages([]);
     }
+    setSearchParams({ room_id: roomVal ?? "" })
   }
 
   const changeUsername = () => {
@@ -92,7 +108,10 @@ export default function Index() {
     <div className="flex flex-col gap-y-3 bg-slate-700 p-3 rounded-xl">
       <span className="text-gray-300 text-md">Username</span>
       <input placeholder="Enter your username" id="set-username-input" className="px-3 py-1 text-white bg-slate-500 rounded-md"/>
-      <span className="text-gray-300 text-md">Room</span>
+      <div className="flex flex-row gap-x-2 items-center justify-between">
+        <span className="text-gray-300 text-md">Room</span>
+        <button className="px-2 py-1 bg-blue-500 rounded-md text-white" onClick={() => generateRoomId()}>Generate secure random id</button>
+      </div>
       <input placeholder="Enter room name" id="set-room-input" className="px-3 py-1 bg-slate-500 rounded-md text-white"/>
       <button onClick={() => saveData()} className="w-full bg-blue-500 px-2 rounded-md py-2 text-white font-bold">Save data</button>
     </div>
