@@ -88,6 +88,7 @@ export default function Sidebar() {
     const handleDeleteRoom = (id: string) => {
         const newRooms = rooms.filter((room) => room.id !== id);
         setRooms(newRooms);
+        window.location.replace(`/chat`)
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(newRooms));
     }
 
