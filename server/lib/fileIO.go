@@ -16,7 +16,7 @@ func Check(e error) error {
 }
 
 func FilepathFromRoom(room string) string {
-	return DB_DIR + "/" + room + ".json"
+	return DB_DIR + "/rooms/" + room + ".json"
 }
 
 func FilepathFromUser(username string) string {
@@ -30,8 +30,8 @@ func createDirIfNotExists(dir string) error {
 	return nil
 }
 
-func createFileIfNotExists(filepath string) error {
-	err := createDirIfNotExists(DB_DIR)
+func createFileIfNotExists(filepath string, dir string) error {
+	err := createDirIfNotExists(dir)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func WriteStringifiedJsonToFileAppend(val string, room string) error {
 	filepath := FilepathFromRoom(room)
 	valBytes := []byte(val + "\n")
 
-	err := createFileIfNotExists(filepath)
+	err := createFileIfNotExists(filepath, DB_DIR+"/rooms")
 	if err == nil {
 		f, err := os.OpenFile(filepath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
