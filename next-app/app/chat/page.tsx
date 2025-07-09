@@ -1,18 +1,16 @@
 "use client";
-import { clearStorage, getFromStorage } from "../lib/localStorage";
+import { getFromStorage } from "../lib/localStorage";
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { mutateSendMessage } from "../mutations/message";
+import { encryptStringClient } from "../lib/crypto-client";
 
 export default function Chat() {
     const router = useRouter();
     const [user, setUser] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-
-    const handleLogout = () => {
-        clearStorage(LOCAL_STORAGE_KEYS.USER);
-        router.push("/auth");
-    }
+    const [message, setMessage] = useState<string>("");
 
     useEffect(() => {
         const userData = getFromStorage(LOCAL_STORAGE_KEYS.USER);
@@ -55,6 +53,17 @@ export default function Chat() {
         { date: Date.now() - 3240000, room: "general", username: "Alice", msg: "Anytime! Always happy to chat about tech stuff." },
         { date: Date.now() - 3220000, room: "general", username: JSON.parse(user).username, msg: "Same here! It's great to have these conversations." },
     ];
+
+    const handleSendMessage = async (msg: string) => {
+        const encryptedMessage = encryptStringClient(msg, JSON.parse(user).password);
+        const response = await mutateSendMessage("general", JSON.parse(user).username, encryptedMessage);
+        if (response.success) {
+            setMessage("");
+            console.log("Message sent successfully");
+        } else {
+            console.error("Failed to send message");
+        }
+    }
 
     return (
         <div className="flex flex-col h-screen bg-gray-900">
@@ -100,8 +109,14 @@ export default function Chat() {
                         type="text"
                         placeholder="Type a message..."
                         className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                     />
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
+                    <button 
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200" 
+                        onClick={() => handleSendMessage(message)}
+                        disabled={message.length === 0}
+                    >
                         Send
                     </button>
                 </div>
