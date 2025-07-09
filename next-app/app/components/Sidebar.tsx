@@ -1,8 +1,9 @@
 "use client";
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
-import { clearStorage } from "../lib/localStorage";
+import { clearStorage, getFromStorage, saveToStorage } from "../lib/localStorage";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Room } from "../types/room";
 
 export default function Sidebar() {
     const router = useRouter();
@@ -16,14 +17,15 @@ export default function Sidebar() {
         id: "",
         password: ""
     });
+    const [rooms, setRooms] = useState<Room[]>([]);
 
-    const mockChats = [
-        { id: 1, username: "Alice", color: "bg-blue-500" },
-        { id: 2, username: "Bob", color: "bg-green-500" },
-        { id: 3, username: "Charlie", color: "bg-purple-500" },
-        { id: 4, username: "Diana", color: "bg-pink-500" },
-        { id: 5, username: "Eve", color: "bg-yellow-500" },
-    ];
+    useEffect(() => {
+        const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
+        if (rooms) {
+            setRooms(JSON.parse(rooms));
+        }
+    }, []);
+
 
     const handleLogout = () => {
         clearStorage(LOCAL_STORAGE_KEYS.USER);
@@ -66,10 +68,26 @@ export default function Sidebar() {
         }));
     }
 
-    const handleCreate = () => {
-        // TODO: Implement room creation logic
-        console.log("Creating room:", createFormData);
+    const handleCreateRoom = () => {
+        const room: Room = {
+            id: createFormData.id,
+            name: createFormData.name,
+            password: createFormData.password
+        }
+        setRooms([...rooms, room]);
+        saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify([...rooms, room]));
+        setCreateFormData({
+            name: "",
+            id: crypto.randomUUID(),
+            password: ""
+        });
         setActiveDropdown(null);
+    }
+
+    const handleDeleteRoom = (id: string) => {
+        const newRooms = rooms.filter((room) => room.id !== id);
+        setRooms(newRooms);
+        saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(newRooms));
     }
 
     const handleJoin = () => {
@@ -134,7 +152,7 @@ export default function Sidebar() {
                                 </div>
                                 
                                 <button
-                                    onClick={handleCreate}
+                                    onClick={handleCreateRoom}
                                     className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200"
                                     disabled={!createFormData.name || !createFormData.password}
                                 >
@@ -183,10 +201,13 @@ export default function Sidebar() {
             </div>
             
             <div className="flex-1 overflow-y-auto">
-                {mockChats.map((chat) => (
-                    <div key={chat.id} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer">
-                        <div className={`w-10 h-10 rounded-full ${chat.color} flex-shrink-0`}></div>
-                        <span className="ml-3 text-white font-medium">{chat.username}</span>
+                {rooms.map((room) => (
+                    <div key={room.id} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer">
+                        <div className={`w-10 h-10 rounded-full flex-shrink-0 bg-blue-500`}></div>
+                        <span className="ml-3 text-white font-medium">{room.name}</span>
+                        <button className="ml-auto text-white text-sm cursor-pointer hover:text-gray-400" onClick={() => handleDeleteRoom(room.id)}>
+                            ❌
+                        </button>
                     </div>
                 ))}
             </div>
