@@ -4,6 +4,8 @@ import { saveToStorage } from "../lib/localStorage";
 import { User } from "../types";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { mutateAuth } from "../mutations/auth";
+import { getHashClient } from "../lib/crypto-client";
 
 export default function Sign() {
     const router = useRouter();
@@ -11,22 +13,27 @@ export default function Sign() {
         username: "",
         password: "",
     });
+    const [error, setError] = useState<string | null>(null);
 
-    const handleAuthenticate = () => {
+    const handleAuthenticate = async () => {
         if (user.username === "" || user.password === "") {
+            setError("Username and password are required");
             return;
         }
-
-        const jsonToSave = JSON.stringify({
-            username: user.username,
-            password: user.password,
-        });
-
-        saveToStorage(LOCAL_STORAGE_KEYS.USER, jsonToSave);
-
-        // check server
-        // server returns either wrong credentials or created successfully
-        router.push("/chat");
+        
+        const hashedPassword = getHashClient(user.password);
+        const response = await mutateAuth(user.username, hashedPassword);
+        
+        if (response.success) {
+            const jsonToSave = JSON.stringify({
+                username: user.username,
+                password: user.password,
+            });
+            saveToStorage(LOCAL_STORAGE_KEYS.USER, jsonToSave);
+            router.push("/chat");
+        } else {
+            setError(response.message);
+        }
     }
 
     return (
@@ -68,15 +75,13 @@ export default function Sign() {
                         
                         <div>
                             <button 
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={handleAuthenticate}
                                 disabled={user.username === "" || user.password === ""}
                             >
                                 Authenticate
                             </button>
-                            <p className="text-xs text-gray-400 text-right mt-2">
-                                ^^ Login or Create
-                            </p>
+                            {error && <p className="text-xs text-red-500 text-right mt-2">{error}</p>}
                         </div>
                     </div>
                 </div>
