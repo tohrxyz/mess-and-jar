@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -16,6 +17,10 @@ func Check(e error) error {
 
 func FilepathFromRoom(room string) string {
 	return DB_DIR + "/" + room + ".json"
+}
+
+func FilepathFromUser(username string) string {
+	return DB_DIR + "/users/" + username + ".json"
 }
 
 func createDirIfNotExists(dir string) error {
@@ -90,4 +95,57 @@ func ReadHistoryFromFile(room string) (string, error) {
 	dat, err := os.ReadFile(filepath)
 	Check(err)
 	return string(dat), nil
+}
+
+func ReadUserFromFile(username string) (string, error) {
+	filepath := FilepathFromUser(username)
+
+	err := createDirIfNotExists(DB_DIR + "/users")
+	if err != nil {
+		return "", err
+	}
+
+	if !checkIfFileExists(filepath) {
+		return "", nil
+	}
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		fmt.Println("Error opening file: ", err)
+		return "", Check(err)
+	}
+
+	defer f.Close()
+
+	dat, err := os.ReadFile(filepath)
+	Check(err)
+	return string(dat), nil
+}
+
+func CreateUser(username string, password string) error {
+	filepath := FilepathFromUser(username)
+
+	err := createDirIfNotExists(DB_DIR + "/users")
+	if err != nil {
+		return err
+	}
+
+	user := User{
+		Username: username,
+		Password: password,
+	}
+
+	userJson, err := json.Marshal(user)
+	if err != nil {
+		fmt.Println("Error marshalling user: ", err)
+		return Check(err)
+	}
+
+	err = os.WriteFile(filepath, userJson, 0644)
+	if err != nil {
+		fmt.Println("Error writing user to file: ", err)
+		return Check(err)
+	}
+
+	return nil
 }

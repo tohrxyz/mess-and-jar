@@ -6,3 +6,8 @@ type Message struct {
 	Username string `json:"username"`
 	Msg      string `json:"msg"`
 }
+
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+func UserToJson(val User) (string, error) {
+	jsonBytes, err := json.Marshal(val)
+
+	if err != nil {
+		fmt.Println("Error with stringifying user to json: ", err)
+		return "", err
+	}
+
+	jsonString := string(jsonBytes)
+	return jsonString, nil
+}
+
 func MessageToJson(val Message) (string, error) {
 	jsonBytes, err := json.Marshal(val)
 
