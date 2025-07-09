@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+const DB_DIR = "./db"
+
 func Check(e error) error {
 	if e != nil {
 		return e
@@ -13,10 +15,22 @@ func Check(e error) error {
 }
 
 func FilepathFromRoom(room string) string {
-	return "./db/" + room + ".json"
+	return DB_DIR + "/" + room + ".json"
+}
+
+func createDirIfNotExists(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, 0755)
+	}
+	return nil
 }
 
 func createFileIfNotExists(filepath string) error {
+	err := createDirIfNotExists(DB_DIR)
+	if err != nil {
+		return err
+	}
+
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
 		_, err := os.Create(filepath)
 		if err != nil {
