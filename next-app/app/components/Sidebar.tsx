@@ -1,6 +1,6 @@
 "use client";
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
-import { clearStorage, getFromStorage, saveToStorage } from "../lib/localStorage";
+import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "../lib/localStorage";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Room } from "../types/room";
@@ -29,6 +29,7 @@ export default function Sidebar() {
 
     const handleLogout = () => {
         clearStorage(LOCAL_STORAGE_KEYS.USER);
+        clearStorage(LOCAL_STORAGE_KEYS.ROOMS);
         router.push("/auth");
     }
 
@@ -212,10 +213,18 @@ export default function Sidebar() {
                 ))}
             </div>
             
-            <div className="p-4 border-t border-gray-700">
+            <div className="p-4 border-t border-gray-700 flex justify-between items-center">
                 <button className="text-white text-sm cursor-pointer hover:text-gray-400" onClick={handleLogout}>
                     Logout
                 </button>
+                <div className="flex gap-2">
+                    <button className="text-white text-sm cursor-pointer hover:text-gray-400" onClick={() => exportLocalConfig()}>
+                        Export
+                    </button>
+                    {/* <button className="text-white text-sm cursor-pointer hover:text-gray-400" onClick={() => importLocalConfig(null as any)}>
+                        Import
+                    </button> */}
+                </div>
             </div>
         </div>
     )
