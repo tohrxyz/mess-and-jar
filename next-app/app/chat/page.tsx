@@ -1,16 +1,19 @@
 "use client";
 import { getFromStorage } from "../lib/localStorage";
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mutateSendMessage } from "../mutations/message";
 import { encryptStringClient } from "../lib/crypto-client";
+import { Room } from "../types/room";
 
 export default function Chat() {
     const router = useRouter();
     const [user, setUser] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [message, setMessage] = useState<string>("");
+    const [room, setRoom] = useState<Room | null>(null);
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         const userData = getFromStorage(LOCAL_STORAGE_KEYS.USER);
@@ -21,6 +24,18 @@ export default function Chat() {
         }
         setIsLoading(false);
     }, [router]);
+
+    useEffect(() => {
+        const roomId = searchParams.get("room_id");
+        if (roomId) {
+            const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
+            if (rooms) {
+                const parsedRooms = JSON.parse(rooms);
+                const room = parsedRooms.find((room: Room) => room.id === roomId);
+                setRoom(room);
+            }
+        }
+    }, [searchParams]);
 
     if (isLoading) {
         return <div>Loading...</div>;
@@ -70,7 +85,7 @@ export default function Chat() {
             {/* Top bar */}
             <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex-shrink-0">
                 <h2 className="text-xl font-semibold text-white">
-                    Chatting with Alice
+                    {room?.name}
                 </h2>
             </div>
 

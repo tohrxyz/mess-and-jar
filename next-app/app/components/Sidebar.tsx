@@ -203,7 +203,11 @@ export default function Sidebar() {
             
             <div className="flex-1 overflow-y-auto">
                 {rooms.map((room) => (
-                    <div key={room.id} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer">
+                    <div 
+                        key={room.id} 
+                        className="flex items-center p-3 hover:bg-gray-700 cursor-pointer"
+                        onClick={() => router.push(`/chat?room_id=${room.id}`)}
+                    >
                         <div className={`w-10 h-10 rounded-full flex-shrink-0 bg-blue-500`}></div>
                         <span className="ml-3 text-white font-medium">{room.name}</span>
                         <button className="ml-auto text-white text-sm cursor-pointer hover:text-gray-400" onClick={() => handleDeleteRoom(room.id)}>
