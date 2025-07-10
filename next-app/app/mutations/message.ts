@@ -1,3 +1,7 @@
+import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
+import { getHashClient } from "../lib/crypto-client";
+import { getFromStorage } from "../lib/localStorage";
+
 export type SendMessageResponse = {
     success: boolean;
     message: string;
@@ -5,11 +9,14 @@ export type SendMessageResponse = {
 
 export const mutateSendMessage = async (room: string, username: string, msg: string, date: string): Promise<SendMessageResponse> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+    const user = getFromStorage(LOCAL_STORAGE_KEYS.USER);
+    const userObj = JSON.parse(user);
     const formData = new FormData();
     formData.append("room", room);
     formData.append("username", username);
     formData.append("msg", msg);
     formData.append("date", date);
+    formData.append("password", getHashClient(userObj.password));
     const response = await fetch(`${apiUrl}/send_message`, {
         method: "POST",
         body: formData,
