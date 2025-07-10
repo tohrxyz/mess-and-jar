@@ -9,6 +9,7 @@ import { Message, Room } from "../types";
 import { getMessages } from "../queries/messages";
 import EmptyState from "../components/EmptyState";
 import MessageInput from "../components/MessageInput";
+import MessageArea from "../components/MessageArea";
 
 export default function Chat() {
     const router = useRouter();
@@ -117,32 +118,10 @@ export default function Chat() {
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
-                {messages.map((message, index) => {
-                    const isCurrentUser = message.username === JSON.parse(user).username;
-                    return (
-                        <div
-                            key={index}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                    isCurrentUser
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-700 text-gray-100'
-                                }`}
-                            >
-                                {!isCurrentUser && (
-                                    <div className="text-xs font-medium mb-1 opacity-75">
-                                        {message.username}
-                                    </div>
-                                )}
-                                <div className={message.msg !== "" ? "" : "text-gray-400"}>{message.msg !== "" ? message.msg : "Unable to decrypt message"}</div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <MessageArea 
+                messages={messages}
+                currentUsername={JSON.parse(user).username}
+            />
 
             {/* Bottom bar */}
             <MessageInput 
