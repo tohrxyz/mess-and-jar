@@ -1,15 +1,26 @@
+import { useState } from "react";
+
 interface MessageInputProps {
     message: string;
     setMessage: (message: string) => void;
-    onSendMessage: (message: string) => void;
+    onSendMessage: (message: string) => Promise<null | Error>;
 }
 
 export default function MessageInput({ message, setMessage, onSendMessage }: MessageInputProps) {
+    const [error, setError] = useState<null | Error>(null);
 
-    const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleOnKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && message.trim().length > 0) {
-            onSendMessage(message);
+            const result = await onSendMessage(message);
+            if (result instanceof Error) {
+                setError(result);
+                setTimeout(() => {
+                    setError(null);
+                }, 5000);
+                return;
+            }
             window.dispatchEvent(new Event("message-sent"))
+            setError(null);
         }
     }
 
@@ -25,9 +36,9 @@ export default function MessageInput({ message, setMessage, onSendMessage }: Mes
                     onKeyDown={handleOnKeyDown}
                 />
                 <button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200" 
+                    className={`bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 ${error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""}`} 
                     onClick={() => onSendMessage(message)}
-                    disabled={message.length === 0}
+                    disabled={message.length === 0 || error !== null}
                 >
                     Send
                 </button>

@@ -85,7 +85,7 @@ export default function Chat() {
         return null
     }
 
-    const handleSendMessage = async (msg: string) => {
+    const handleSendMessage = async (msg: string): Promise<null | Error> => {
         const date = Date.now().toString();
         const encryptedMessage = encryptStringClient(msg, room?.password ?? "");
         const response = await mutateSendMessage(roomId ?? "general", JSON.parse(user).username, encryptedMessage, date);
@@ -98,9 +98,9 @@ export default function Chat() {
                 msg: msg,
             }]);
             lastTimestampRef.current = Number(date);
-            console.log("Message sent successfully");
+            return null;
         } else {
-            console.error("Failed to send message");
+            return new Error("Failed to send message");
         }
     }
 
