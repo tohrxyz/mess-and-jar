@@ -7,6 +7,7 @@ import { mutateSendMessage } from "../mutations/message";
 import { decryptStringClient, encryptStringClient } from "../lib/crypto-client";
 import { Message, Room } from "../types";
 import { getMessages } from "../queries/messages";
+import EmptyState from "../components/EmptyState";
 
 export default function Chat() {
     const router = useRouter();
@@ -89,6 +90,10 @@ export default function Chat() {
         } else {
             console.error("Failed to send message");
         }
+    }
+
+    if (!roomId) {
+        return <EmptyState />;
     }
 
     return (
