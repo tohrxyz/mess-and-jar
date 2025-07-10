@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Message } from "../types";
 
 interface MessageAreaProps {
@@ -6,8 +7,36 @@ interface MessageAreaProps {
 }
 
 export default function MessageArea({ messages, currentUsername }: MessageAreaProps) {
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const isScrolledManuallyRef = useRef(false);
+    const isTouchedBottomRef = useRef(false);
+
+    useEffect(() => {
+        if (!isScrolledManuallyRef.current || isTouchedBottomRef.current) {
+            scrollAreaRef.current?.scrollTo({
+                top: scrollAreaRef.current?.scrollHeight,
+                behavior: "smooth"
+            });
+            isScrolledManuallyRef.current = false;
+        }
+    }, [messages]);
+
     return (
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+        <div 
+            className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0" 
+            ref={scrollAreaRef}
+            onScroll={(e) => {
+                if (!isScrolledManuallyRef.current) {
+                    isScrolledManuallyRef.current = true;
+                }
+
+                if ((scrollAreaRef.current?.scrollTop ?? 0) + (scrollAreaRef.current?.clientHeight ?? 0) >= (scrollAreaRef.current?.scrollHeight ?? 0)) {
+                    isTouchedBottomRef.current = true;
+                } else if (isTouchedBottomRef.current) {
+                    isTouchedBottomRef.current = false;
+                }
+            }}
+        >
             {messages.map((message, index) => {
                 const isCurrentUser = message.username === currentUsername;
                 return (
