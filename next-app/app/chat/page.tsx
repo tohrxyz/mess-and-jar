@@ -20,7 +20,6 @@ export default function Chat() {
     const roomId = searchParams.get("room_id");
     const [messages, setMessages] = useState<Message[]>([]);
 
-
     useEffect(() => {
         const userData = getFromStorage(LOCAL_STORAGE_KEYS.USER);
         if (!userData) {
@@ -31,6 +30,8 @@ export default function Chat() {
         setIsLoading(false);
     }, [router]);
 
+    const previousRoomIdRef = useRef<string | null>(null);
+
     useEffect(() => {
         const roomId = searchParams.get("room_id");
         if (roomId) {
@@ -40,11 +41,20 @@ export default function Chat() {
                 const room = parsedRooms.find((room: Room) => room.id === roomId);
                 setRoom(room);
             }
+
+            if (!previousRoomIdRef.current) {
+                previousRoomIdRef.current = roomId;
+            } else {
+                if (previousRoomIdRef.current !== roomId) {
+                    setMessages([]);
+                    lastTimestampRef.current = 0;
+                    previousRoomIdRef.current = roomId;
+                }
+            }
         }
     }, [searchParams]);
-
+    
     const lastTimestampRef = useRef<number>(0);
-
     useEffect(() => {
         const fetchMessages = async () => {
             if (room) {
