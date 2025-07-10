@@ -61,12 +61,12 @@ export default function Chat() {
             if (room) {
                 const timestamp = lastTimestampRef.current;
                 const newMessages = await getMessages(room.id, Number(timestamp));
-                const decryptedMessages = newMessages.map(message => ({
-                    ...message,
-                    msg: decryptStringClient(message.msg, room?.password ?? "") ?? ""
-                }));
-                setMessages(prev => [...prev, ...decryptedMessages]);
                 if (newMessages.length > 0) {
+                    const decryptedMessages = newMessages.map(message => ({
+                        ...message,
+                        msg: decryptStringClient(message.msg, room?.password ?? "") ?? ""
+                    }));
+                    setMessages(prev => [...prev, ...decryptedMessages]);
                     lastTimestampRef.current = Number(newMessages?.at(newMessages.length - 1)?.date);
                 }
             }
