@@ -65,13 +65,16 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
             className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0" 
             ref={messageAreaScrollRef}
             onScroll={(e) => {
-                isScrolledManuallyRef.current = true;
+                if (!isScrolledManuallyRef.current) {
+                    isScrolledManuallyRef.current = true;
+                }
                 if (
                     (messageAreaScrollRef.current?.scrollTop ?? 0) + 
                     (messageAreaScrollRef.current?.clientHeight ?? 0) >= 
-                    (messageAreaScrollRef.current?.scrollHeight ?? 0)
+                    (messageAreaScrollRef.current?.scrollHeight ?? 0) - 20
                 ) {
                     isTouchedBottomRef.current = true;
+                    isScrolledManuallyRef.current = false;
                 } else if (isTouchedBottomRef.current) {
                     isTouchedBottomRef.current = false;
                 }
