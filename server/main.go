@@ -29,6 +29,22 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 		Msg:      req.FormValue("msg"),
 	}
 
+	user, err := lib.ReadUserFromFile(message.Username)
+	if err != nil {
+		fmt.Println("Can't read user: ", err)
+	}
+
+	userObj := lib.User{}
+	err = json.Unmarshal([]byte(user), &userObj)
+	if err != nil {
+		fmt.Println("Can't unmarshal user: ", err)
+	}
+
+	if userObj.Password != req.FormValue("password") {
+		http.Error(w, "Wrong password", http.StatusUnauthorized)
+		return
+	}
+
 	stringifiedMessage, err := lib.MessageToJson(message)
 	if err != nil {
 		// error handling
