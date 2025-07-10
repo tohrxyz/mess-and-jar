@@ -52,7 +52,7 @@ export default function Chat() {
                 const newMessages = await getMessages(room.id, Number(timestamp));
                 const decryptedMessages = newMessages.map(message => ({
                     ...message,
-                    msg: decryptStringClient(message.msg, room?.password ?? "")
+                    msg: decryptStringClient(message.msg, room?.password ?? "") ?? ""
                 }));
                 setMessages(prev => [...prev, ...decryptedMessages]);
                 if (newMessages.length > 0) {
@@ -127,7 +127,7 @@ export default function Chat() {
                                         {message.username}
                                     </div>
                                 )}
-                                <div>{message.msg}</div>
+                                <div className={message.msg !== "" ? "" : "text-gray-400"}>{message.msg !== "" ? message.msg : "Unable to decrypt message"}</div>
                             </div>
                         </div>
                     );

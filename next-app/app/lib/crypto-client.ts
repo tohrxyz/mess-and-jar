@@ -9,5 +9,9 @@ export const encryptStringClient = (input: string, key: string) => {
 }
 
 export const decryptStringClient = (input: string, key: string) => {
-    return AES.decrypt(input, key).toString(enc.Utf8);
+    try {
+        return AES.decrypt(input, key).toString(enc.Utf8);
+    } catch (error) {
+        return null;
+    }
 }
