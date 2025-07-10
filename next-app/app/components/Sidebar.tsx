@@ -83,6 +83,7 @@ export default function Sidebar() {
             password: ""
         });
         setActiveDropdown(null);
+        router.push(`/chat?room_id=${room.id}`);
     }
 
     const handleDeleteRoom = (id: string) => {
@@ -93,9 +94,38 @@ export default function Sidebar() {
     }
 
     const handleJoin = () => {
-        // TODO: Implement room join logic
-        console.log("Joining room:", joinFormData);
         setActiveDropdown(null);
+        const room: Room = {
+            id: joinFormData.id,
+            name: `unknown ${Math.random().toString(36).substring(2, 15)}`,
+            password: joinFormData.password
+        }
+
+        let roomsToCommit: Room[] = [];
+
+        const isExistAlready = rooms.find((r) => r.id === room.id);
+        if (isExistAlready) {
+            roomsToCommit = rooms.map((r) => {
+                if (r.id === room.id) {
+                    return {
+                        ...r,
+                        password: joinFormData.password
+                    }
+                }
+                return r;
+            });
+        } else {
+            roomsToCommit = rooms.concat(room);
+        }
+        setRooms(roomsToCommit);
+        saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(roomsToCommit));
+        setActiveDropdown(null);
+
+        if (isExistAlready) {
+            window.location.reload(); // TODO: figure out how to reset state, without reloading
+        } else {
+            router.push(`/chat?room_id=${room.id}`);
+        }
     }
 
     return (
