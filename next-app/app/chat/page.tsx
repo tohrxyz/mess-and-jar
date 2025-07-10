@@ -8,6 +8,7 @@ import { decryptStringClient, encryptStringClient } from "../lib/crypto-client";
 import { Message, Room } from "../types";
 import { getMessages } from "../queries/messages";
 import EmptyState from "../components/EmptyState";
+import MessageInput from "../components/MessageInput";
 
 export default function Chat() {
     const router = useRouter();
@@ -134,24 +135,11 @@ export default function Chat() {
             </div>
 
             {/* Bottom bar */}
-            <div className="bg-gray-800 border-t border-gray-700 px-6 py-2 flex-shrink-0">
-                <div className="flex space-x-4">
-                    <input
-                        type="text"
-                        placeholder="Type a message..."
-                        className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                    />
-                    <button 
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200" 
-                        onClick={() => handleSendMessage(message)}
-                        disabled={message.length === 0}
-                    >
-                        Send
-                    </button>
-                </div>
-            </div>
+            <MessageInput 
+                message={message}
+                setMessage={setMessage}
+                onSendMessage={handleSendMessage}
+            />
         </div>
     )
 }
