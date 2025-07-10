@@ -122,6 +122,27 @@ func ReadUserFromFile(username string) (string, error) {
 	return string(dat), nil
 }
 
+func GetUser(username string) (User, error) {
+	filepath := FilepathFromUser(username)
+
+	if !checkIfFileExists(filepath) {
+		return User{}, nil
+	}
+
+	dat, err := os.ReadFile(filepath)
+	if err != nil {
+		return User{}, Check(err)
+	}
+
+	user := User{}
+	err = json.Unmarshal(dat, &user)
+	if err != nil {
+		return User{}, Check(err)
+	}
+
+	return user, nil
+}
+
 func CreateUser(username string, password string) error {
 	filepath := FilepathFromUser(username)
 

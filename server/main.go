@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"server/lib"
@@ -29,32 +28,30 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 		Msg:      req.FormValue("msg"),
 	}
 
-	user, err := lib.ReadUserFromFile(message.Username)
+	user, err := lib.GetUser(message.Username)
 	if err != nil {
-		fmt.Println("Can't read user: ", err)
+		fmt.Println("Can't get user: ", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
 	}
 
-	userObj := lib.User{}
-	err = json.Unmarshal([]byte(user), &userObj)
-	if err != nil {
-		fmt.Println("Can't unmarshal user: ", err)
-	}
-
-	if userObj.Password != req.FormValue("password") {
+	if user.Password != req.FormValue("password") {
 		http.Error(w, "Wrong password", http.StatusUnauthorized)
 		return
 	}
 
 	stringifiedMessage, err := lib.MessageToJson(message)
 	if err != nil {
-		// error handling
 		fmt.Println("Can't stringify message: ", err)
+		http.Error(w, "Can't process your message", http.StatusInternalServerError)
+		return
 	}
 
 	err = lib.WriteStringifiedJsonToFileAppend(stringifiedMessage, message.Room)
 	if err != nil {
-		// error handling
 		fmt.Println("Can't save message: ", err)
+		http.Error(w, "Can't save your message", http.StatusInternalServerError)
+		return
 	}
 
 	w.Write([]byte(http.StatusText(200)))
@@ -66,14 +63,16 @@ func query_messages(w http.ResponseWriter, req *http.Request) {
 
 	history, err := lib.ReadHistoryFromFile(room)
 	if err != nil {
-		// error handling
 		fmt.Println("Can't read history: ", err)
+		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
+		return
 	}
 
 	filteredHistory, err := lib.GetChatHistoryAfterTimestamp(history, parseDate(timestamp))
 	if err != nil {
-		// error handling
 		fmt.Println("Can't filter history: ", err)
+		http.Error(w, "Can't filter the room history", http.StatusInternalServerError)
+		return
 	}
 	toJson := lib.HistoryToJson(filteredHistory)
 
@@ -89,29 +88,26 @@ func auth(w http.ResponseWriter, req *http.Request) {
 	username := req.FormValue("username")
 	password := req.FormValue("password")
 
-	user, err := lib.ReadUserFromFile(username)
-	if err != nil {
-		fmt.Println("Can't read user: ", err)
+	if username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
 	}
 
-	userObj := lib.User{}
-
-	err = json.Unmarshal([]byte(user), &userObj)
-	if err != nil {
-		fmt.Println("Can't unmarshal user: ", err)
+	if password == "" {
+		http.Error(w, "Password is required", http.StatusBadRequest)
+		return
 	}
 
-	if userObj.Username == "" {
-		// create
-		fmt.Println("Creating user: ", username)
-		if password == "" {
-			fmt.Println("Can't create user: Password is required for new user registration")
-			http.Error(w, "Can't create user: Password is required for new user registration", http.StatusBadRequest)
-			return
-		}
+	user, err := lib.GetUser(username)
+	if err != nil {
+		fmt.Println("Can't get user: ", err)
+		http.Error(w, "Can't get user", http.StatusInternalServerError)
+		return
+	}
+
+	if user.Username == "" {
 		err = lib.CreateUser(username, password)
 		if err != nil {
-			fmt.Println("Can't create user: ", err)
 			http.Error(w, "Can't create user", http.StatusInternalServerError)
 			return
 		}
@@ -119,14 +115,10 @@ func auth(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusCreated)))
 		return
 	} else {
-		// check password
-		fmt.Println("User exists: ", userObj.Username)
-		if userObj.Password != password {
-			fmt.Println("Wrong password: ", username)
+		if user.Password != password {
 			http.Error(w, "Wrong password", http.StatusUnauthorized)
 			return
 		}
-		fmt.Println("Correct password: ", username)
 		w.Write([]byte(http.StatusText(http.StatusOK)))
 		return
 	}
