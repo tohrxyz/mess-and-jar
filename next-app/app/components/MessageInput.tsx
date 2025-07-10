@@ -9,6 +9,7 @@ export default function MessageInput({ message, setMessage, onSendMessage }: Mes
     const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && message.trim().length > 0) {
             onSendMessage(message);
+            window.dispatchEvent(new Event("message-sent"))
         }
     }
 
