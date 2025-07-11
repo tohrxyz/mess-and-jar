@@ -7,7 +7,9 @@ export default function ChatLayout({
 }) {
     return (
         <div className="flex h-screen bg-gray-900">
-            <Sidebar />
+            <div className="flex">
+                <Sidebar />
+            </div>
             <div className="flex-1 flex flex-col">
                 <div className="flex-1 bg-gray-100">
                     {children}
