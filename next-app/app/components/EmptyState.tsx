@@ -1,4 +1,8 @@
+import { useState } from "react";
+import HamburgerMenu from "./HamburgerMenu";
+
 export default function EmptyState() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     return (
         <div className="flex flex-col h-screen bg-gray-900">
             <div className="flex-1 flex items-center justify-center">
@@ -11,14 +15,25 @@ export default function EmptyState() {
                     <h2 className="text-2xl font-semibold text-white mb-2">
                         Welcome to Chat
                     </h2>
-                    <p className="text-gray-400 mb-6">
-                        Select a room from the sidebar to start chatting
+                    <p className="text-gray-400 mb-6 max-lg:hidden">
+                        Choose a chat room to start your conversation
                     </p>
-                    <div className="text-sm text-gray-500">
-                        Create a new room or join an existing one to get started
+                    <div className="text-sm text-gray-500 max-lg:hidden">
+                        No rooms available? Create your own or join others to begin chatting
                     </div>
+
+                    <button 
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 lg:hidden"
+                        onClick={() => setIsMenuOpen(true)}
+                    >
+                        Open Menu
+                    </button>
                 </div>
             </div>
+            <HamburgerMenu 
+                isOpen={isMenuOpen}
+                onClose={() => setIsMenuOpen(false)}
+            />
         </div>
     );
 } 
