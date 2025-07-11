@@ -106,11 +106,26 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
     const { messageAreaScrollRef } = useRoomContext();
     const isScrolledManuallyRef = useRef(false);
     const isTouchedBottomRef = useRef(false);
+    const isInitialRenderRef = useRef(true);
+    const previousMessageCountRef = useRef(0);
 
+    // Set initial scroll position to bottom without animation
     useEffect(() => {
-        if (!isScrolledManuallyRef.current || isTouchedBottomRef.current) {
-            scrollToBottom(messageAreaScrollRef);
-            isScrolledManuallyRef.current = false;
+        if (isInitialRenderRef.current && messageAreaScrollRef.current && messages.length > 0) {
+            messageAreaScrollRef.current.scrollTop = messageAreaScrollRef.current.scrollHeight;
+            isInitialRenderRef.current = false;
+            previousMessageCountRef.current = messages.length;
+        }
+    }, [messages.length]);
+
+    // Handle auto-scroll for new messages
+    useEffect(() => {
+        if (!isInitialRenderRef.current && messages.length > previousMessageCountRef.current) {
+            if (!isScrolledManuallyRef.current || isTouchedBottomRef.current) {
+                scrollToBottom(messageAreaScrollRef);
+                isScrolledManuallyRef.current = false;
+            }
+            previousMessageCountRef.current = messages.length;
         }
     }, [messages]);
 

@@ -7,5 +7,5 @@ export const scrollToBottom = (messageAreaScrollRef: RefObject<HTMLDivElement | 
             top: messageAreaScrollRef.current?.scrollHeight + 200,
             behavior: "smooth"
         });
-    }, 200);
+    }, 100);
 }
