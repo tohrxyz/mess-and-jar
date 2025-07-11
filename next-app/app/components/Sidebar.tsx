@@ -1,7 +1,7 @@
 "use client";
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
 import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "../lib/localStorage";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Room } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
@@ -19,7 +19,9 @@ export default function Sidebar() {
         password: ""
     });
     const [rooms, setRooms] = useState<Room[]>([]);
-
+    const params = useParams();
+    const room_id = typeof params.room_id === 'string' ? params.room_id : params.room_id?.[0];
+    
     useEffect(() => {
         const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
         if (rooms) {
@@ -249,7 +251,7 @@ export default function Sidebar() {
                                 {rooms.map((room) => (
                                     <div 
                                         key={room.id} 
-                                        className="flex items-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer transition-colors"
+                                        className={`flex items-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer border-2 transition-colors ${room.id === room_id ? "border-blue-500" : "border-transparent"}`}
                                         onClick={() => handleRoomClick(room.id)}
                                     >
                                         <div className="w-10 h-10 rounded-full flex-shrink-0 bg-blue-500 flex items-center justify-center">
@@ -264,7 +266,7 @@ export default function Sidebar() {
                                             </p>
                                         </div>
                                         <button 
-                                            className="ml-2 text-red-400 hover:text-red-300 text-sm transition-colors"
+                                            className="ml-2 text-white hover:text-gray-300 text-sm transition-colors cursor-pointer"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (window.confirm("Are you sure you want to delete this room?")) {
@@ -272,7 +274,10 @@ export default function Sidebar() {
                                                 }
                                             }}
                                         >
-                                            ❌
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                            </svg>
+                                            
                                         </button>
                                     </div>
                                 ))}
