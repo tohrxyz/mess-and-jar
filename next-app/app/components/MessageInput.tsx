@@ -4,10 +4,12 @@ import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { mutateSendMessage } from "../mutations/message";
 import { encryptStringClient } from "../lib/crypto-client";
 import { scrollToBottom } from "../lib/scroll-util";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
     const { inputMessage, setInputMessage, room, user, setMessages, lastTimestampRef, messageAreaScrollRef } = useRoomContext();
+    const queryClient = useQueryClient();
 
     const handleSendMessage = async (msg: string): Promise<null | Error> => {
         const userObj = JSON.parse(user ?? "{}") as { username: string };
@@ -16,6 +18,7 @@ export default function MessageInput() {
         const response = await mutateSendMessage(room?.id ?? "general", userObj.username, encryptedMessage, date);
         if (response.success) {
             setInputMessage("");
+            await queryClient.invalidateQueries({ queryKey: ["messages", room?.id, lastTimestampRef.current] });
             setMessages(prev => [...prev, {
                 date,
                 room: room?.id ?? "general",

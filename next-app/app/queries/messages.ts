@@ -20,7 +20,7 @@ export const useMessages = (roomId: string, timestamp: number) => {
         enabled: !!roomId,
         refetchInterval: 5000,
         refetchOnWindowFocus: true,
-        refetchOnMount: false,
+        refetchOnMount: true,
         refetchOnReconnect: false,
         retry: 3,
     })
