@@ -81,7 +81,7 @@ export default function RoomPage() {
                 <h1 className="text-lg font-semibold text-white">Room {room_id?.slice(0, 4) + "..." + room_id?.slice(-4)}</h1>
                 <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
                 {/* hamburger menu button */}
-                <button className="text-white text-sm cursor-pointer hover:text-gray-400">
+                <button className="text-white text-sm cursor-pointer hover:text-gray-400 lg:hidden">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
