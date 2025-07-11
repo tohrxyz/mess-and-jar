@@ -4,13 +4,14 @@ import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Room } from "../types/room";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function Sidebar() {
     const router = useRouter();
     const [activeDropdown, setActiveDropdown] = useState<'create' | 'join' | null>(null);
     const [createFormData, setCreateFormData] = useState({
         name: "",
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         password: ""
     });
     const [joinFormData, setJoinFormData] = useState({
@@ -42,7 +43,7 @@ export default function Sidebar() {
                 // Reset create form and generate new UUID when opening
                 setCreateFormData({
                     name: "",
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     password: ""
                 });
             } else {
@@ -79,7 +80,7 @@ export default function Sidebar() {
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify([...rooms, room]));
         setCreateFormData({
             name: "",
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             password: ""
         });
         setActiveDropdown(null);
@@ -111,7 +112,7 @@ export default function Sidebar() {
                         ...r,
                         password: joinFormData.password
                     }
-                }
+            }
                 return r;
             });
         } else {
