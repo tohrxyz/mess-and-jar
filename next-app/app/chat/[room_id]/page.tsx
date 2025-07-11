@@ -87,7 +87,7 @@ export default function RoomPage() {
                 </button>
             </div>
             {/* messages */}
-            <div className="flex-1 min-h-0 max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+            <div className="flex-1 min-h-0 max-h-[calc(100vh-7.5rem)] overflow-y-hidden">
                 <MessageArea
                     messages={messages}
                     currentUsername={JSON.parse(user ?? "{}").username}

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Message } from "../types";
+import { useRoomContext } from "../chat/[room_id]/RoomContext";
+import { scrollToBottom } from "../lib/scroll-util";
 
 interface MessageAreaProps {
     messages: Message[];
@@ -15,7 +17,7 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     return (
         <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
             <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-[20px] ${isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none'} ${
                     isCurrentUser
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-700 text-gray-100'
@@ -35,34 +37,20 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
 }
 
 export default function MessageArea({ messages, currentUsername }: MessageAreaProps) {
-    const messageAreaScrollRef = useRef<HTMLDivElement>(null);
+    const { messageAreaScrollRef } = useRoomContext();
     const isScrolledManuallyRef = useRef(false);
     const isTouchedBottomRef = useRef(false);
 
     useEffect(() => {
         if (!isScrolledManuallyRef.current || isTouchedBottomRef.current) {
-            messageAreaScrollRef.current?.scrollTo({
-                top: messageAreaScrollRef.current?.scrollHeight,
-                behavior: "smooth"
-            });
+            scrollToBottom(messageAreaScrollRef);
             isScrolledManuallyRef.current = false;
         }
     }, [messages]);
 
-    useEffect(() => {
-        window.addEventListener("message-sent", () => {
-            setTimeout(() => {
-                messageAreaScrollRef.current?.scrollTo({
-                    top: messageAreaScrollRef.current?.scrollHeight + 300,
-                    behavior: "smooth"
-                });
-            }, 200);
-        });
-    }, []);
-
     return (
         <div 
-            className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0" 
+            className="flex-1 overflow-y-scroll p-6 space-y-4 min-h-0 max-h-[calc(100vh-7.5rem)]" 
             ref={messageAreaScrollRef}
             onScroll={(e) => {
                 if (!isScrolledManuallyRef.current) {
