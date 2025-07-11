@@ -14,6 +14,29 @@ interface MessageItemProps {
 }
 
 function MessageItem({ message, isCurrentUser }: MessageItemProps) {
+    const renderMessageWithLinks = (text: string) => {
+        // URL regex pattern to detect URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const parts = text.split(urlRegex);
+        
+        return parts.map((part, index) => {
+            if (urlRegex.test(part)) {
+                return (
+                    <a
+                        key={index}
+                        href={part}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:no-underline"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+            return part;
+        });
+    };
+
     return (
         <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -28,8 +51,8 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                         {message.username}
                     </div>
                 )}
-                <div className={message.msg !== "" ? "" : "text-gray-400"}>
-                    {message.msg !== "" ? message.msg : "Unable to decrypt message"}
+                <div className={`${message.msg !== "" ? "" : "text-gray-400"} break-all`}>
+                    {message.msg !== "" ? renderMessageWithLinks(message.msg) : "Unable to decrypt message"}
                 </div>
             </div>
         </div>

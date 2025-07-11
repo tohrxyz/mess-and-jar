@@ -32,7 +32,7 @@ export default function RoomPage() {
     const { data: queriedMessages, isLoading } = useMessages(room_id as string, lastTimestampRef.current);
 
     useEffect(() => {
-        if (room) {
+        if (room_id) {
             if (queriedMessages && queriedMessages.length > 0) {
                 const decryptedMessages = queriedMessages.map(message => ({
                     ...message,
@@ -42,7 +42,7 @@ export default function RoomPage() {
                 lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date);
             }
         }
-    }, [queriedMessages, room])
+    }, [queriedMessages, room_id, room])
 
     useEffect(() => {
         const userData = getFromStorage(LOCAL_STORAGE_KEYS.USER);
@@ -78,7 +78,8 @@ export default function RoomPage() {
         <main className="flex flex-col h-full">
             {/* topbar */}
             <div className="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-                <h1 className="text-lg font-semibold text-white">Room</h1>
+                <h1 className="text-lg font-semibold text-white">Room {room_id?.slice(0, 4) + "..." + room_id?.slice(-4)}</h1>
+                <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
                 {/* hamburger menu button */}
                 <button className="text-white text-sm cursor-pointer hover:text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">

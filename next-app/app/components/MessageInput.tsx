@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { mutateSendMessage } from "../mutations/message";
@@ -45,7 +46,7 @@ export default function MessageInput() {
     }
 
     return (
-        <div className="bg-gray-800 border-t border-gray-700 px-6 py-2 flex-shrink-0">
+        <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex-shrink-0">
             <div className="flex space-x-4">
                 <input
                     type="text"
@@ -54,9 +55,10 @@ export default function MessageInput() {
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={handleOnKeyDown}
+                    suppressHydrationWarning
                 />
                 <button 
-                    className={`bg-blue-600 hover:bg-blue-700 text-white px-1 py-1 rounded-lg font-medium transition-colors duration-200 ${error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""} w-min`} 
+                    className={`bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-medium transition-colors duration-200 ${error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""}`} 
                     onClick={() => handleSendMessage(inputMessage)}
                     disabled={inputMessage.length === 0 || error !== null}
                 >
