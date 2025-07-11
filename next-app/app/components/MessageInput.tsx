@@ -21,6 +21,7 @@ export default function MessageInput() {
                 room: room?.id ?? "general",
                 username: userObj.username,
                 msg: msg,
+                isSentFromClient: true,
             }]);
             lastTimestampRef.current = Number(date);
             scrollToBottom(messageAreaScrollRef);

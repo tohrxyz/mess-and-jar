@@ -3,4 +3,5 @@ export type Message = {
     room: string;
     username: string;
     msg: string;
+    isSentFromClient?: boolean;
 }

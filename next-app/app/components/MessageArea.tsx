@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Message } from "../types";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { scrollToBottom } from "../lib/scroll-util";
+import { decryptStringClient } from "../lib/crypto-client";
 
 interface MessageAreaProps {
     messages: Message[];
@@ -14,6 +15,10 @@ interface MessageItemProps {
 }
 
 function MessageItem({ message, isCurrentUser }: MessageItemProps) {
+    const { room } = useRoomContext();
+    const [displayText, setDisplayText] = useState<string>("");
+    const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
+    
     const renderMessageWithLinks = (text: string) => {
         // URL regex pattern to detect URLs
         const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -37,6 +42,44 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
         });
     };
 
+    const generateGlitchText = (length: number) => {
+        const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?`~';
+        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    };
+
+    useEffect(() => {
+        if (!room?.password || !message.msg) {
+            setDisplayText(message.msg || "Unable to decrypt message");
+            setIsDecrypting(false);
+            return;
+        }
+
+        // Try to decrypt the message
+        const decryptedMessage = message.isSentFromClient ? message.msg : decryptStringClient(message.msg, room.password);
+        
+        if (!decryptedMessage) {
+            setDisplayText("Unable to decrypt message");
+            setIsDecrypting(false);
+            return;
+        }
+
+        // Start glitch animation
+        let glitchCount = 0;
+        const maxGlitches = 8;
+        const glitchInterval = setInterval(() => {
+            if (glitchCount < maxGlitches) {
+                setDisplayText(generateGlitchText(decryptedMessage.length));
+                glitchCount++;
+            } else {
+                setDisplayText(decryptedMessage);
+                setIsDecrypting(false);
+                clearInterval(glitchInterval);
+            }
+        }, 50);
+
+        return () => clearInterval(glitchInterval);
+    }, [message.msg, room?.password]);
+
     return (
         <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -51,8 +94,8 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                         {message.username}
                     </div>
                 )}
-                <div className={`${message.msg !== "" ? "" : "text-gray-400"} break-all`}>
-                    {message.msg !== "" ? renderMessageWithLinks(message.msg) : "Unable to decrypt message"}
+                <div className={`${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>
+                    {displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}
                 </div>
             </div>
         </div>

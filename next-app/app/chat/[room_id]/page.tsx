@@ -33,19 +33,7 @@ export default function RoomPage() {
 
     const { data: queriedMessages, isLoading } = useMessages(room_id as string, lastTimestampRef.current);
 
-    useEffect(() => {
-        if (room_id) {
-            if (queriedMessages && queriedMessages.length > 0) {
-                const decryptedMessages = queriedMessages.map(message => ({
-                    ...message,
-                    msg: decryptStringClient(message.msg, room?.password ?? "") ?? ""
-                }));
-                setMessages(prev => [...prev, ...decryptedMessages]);
-                lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date);
-            }
-        }
-    }, [queriedMessages, room_id, room])
-
+    
     useEffect(() => {
         const userData = getFromStorage(LOCAL_STORAGE_KEYS.USER);
         if (!userData) {
@@ -54,7 +42,7 @@ export default function RoomPage() {
             setUser(userData);
         }
     }, [router]);
-
+    
     useEffect(() => {
         if (room_id) {
             const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
@@ -63,7 +51,7 @@ export default function RoomPage() {
                 const room = parsedRooms.find((room: Room) => room.id === room_id);
                 setRoom(room);
             }
-
+            
             if (!previousRoomIdRef.current) {
                 previousRoomIdRef.current = room_id as string;
             } else {
@@ -75,7 +63,15 @@ export default function RoomPage() {
             }
         }
     }, [room_id]);
-
+    
+    useEffect(() => {
+        if (room_id) {
+            if (queriedMessages && queriedMessages.length > 0) {
+                setMessages(prev => [...prev, ...queriedMessages]);
+                lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date);
+            }
+        }
+    }, [queriedMessages, room_id])
     return (
         <main className="flex flex-col h-full">
             {/* topbar */}

@@ -4,8 +4,8 @@ export const scrollToBottom = (messageAreaScrollRef: RefObject<HTMLDivElement | 
     if (!messageAreaScrollRef.current) return;
     setTimeout(() => {
         messageAreaScrollRef.current?.scrollTo({
-            top: messageAreaScrollRef.current?.scrollHeight,
+            top: messageAreaScrollRef.current?.scrollHeight + 200,
             behavior: "smooth"
         });
-    }, 100);
+    }, 200);
 }
