@@ -17,6 +17,7 @@ func parseDate(date_str string) int64 {
 }
 
 func send_message(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Sending message")
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -61,6 +62,7 @@ func query_messages(w http.ResponseWriter, req *http.Request) {
 	timestamp := req.URL.Query().Get("timestamp")
 	room := req.URL.Query().Get("room")
 
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Querying messages for room: ", room)
 	history, err := lib.ReadHistoryFromFile(room)
 	if err != nil {
 		fmt.Println("Can't read history: ", err)
