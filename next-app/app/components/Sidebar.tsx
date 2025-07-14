@@ -3,8 +3,10 @@ import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
 import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "../lib/localStorage";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Room } from "../types/room";
+import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
+import { roomOperation } from "../mutations/room";
+import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
 
 export default function Sidebar() {
     const router = useRouter();
@@ -72,7 +74,7 @@ export default function Sidebar() {
         }));
     }
 
-    const handleCreateRoom = () => {
+    const handleCreateRoom = async () => {
         const room: Room = {
             id: createFormData.id,
             name: createFormData.name,
@@ -85,6 +87,12 @@ export default function Sidebar() {
             id: uuidv4(),
             password: ""
         });
+        await roomOperation({ 
+            id: room.id, 
+            name: encryptStringClient(room.name, room.password), 
+            password: getHashClient(room.password), 
+            method: RoomBackendMethod.RoomCreate
+        })
         setActiveDropdown(null);
         router.push(`/chat/${room.id}`);
     }
@@ -100,11 +108,16 @@ export default function Sidebar() {
         router.push(`/chat/${roomId}`);
     }
 
-    const handleJoin = () => {
+    const handleJoin = async () => {
         setActiveDropdown(null);
+        const roomResponse = await roomOperation({
+            id: joinFormData.id,
+            method: RoomBackendMethod.RoomGet
+        }) as RoomGetResponse
+        const decryptedName = decryptStringClient(roomResponse?.room?.name ?? "", joinFormData.password)
         const room: Room = {
             id: joinFormData.id,
-            name: `unknown ${Math.random().toString(36).substring(2, 15)}`,
+            name: decryptedName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
             password: joinFormData.password
         }
 
