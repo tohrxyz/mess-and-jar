@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/lib"
+	"server/lib/room"
 	"strconv"
 	"time"
 )
@@ -126,6 +127,78 @@ func auth(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+const (
+	RoomCreate = "create"
+	RoomEdit   = "edit"
+	RoomGet    = "get"
+)
+
+func roomEndpoint(w http.ResponseWriter, req *http.Request) {
+	method := req.FormValue("method")
+	if method == "" {
+		http.Error(w, "Must specify room method (create/edit/get)", http.StatusBadRequest)
+		return
+	}
+
+	roomData := lib.Room{
+		Id:       req.FormValue("id"),
+		Name:     req.FormValue("name"),
+		Password: req.FormValue("password"),
+	}
+
+	switch method {
+	case RoomCreate:
+		if roomData.Id == "" || roomData.Name == "" || roomData.Password == "" {
+			http.Error(w, "Must specify room id, name and password", http.StatusBadRequest)
+			return
+		}
+		err := room.CreateRoom(roomData)
+		if err != nil {
+			http.Error(w, "Cannot create room: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Write([]byte(http.StatusText(http.StatusCreated)))
+		return
+	case RoomEdit:
+		if roomData.Id == "" || roomData.Name == "" || roomData.Password == "" {
+			http.Error(w, "Must specify room id, name and password", http.StatusBadRequest)
+			return
+		}
+
+		err := room.EditRoom(roomData)
+		if err != nil {
+			http.Error(w, "Cannot edit room: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Write([]byte(http.StatusText(http.StatusOK)))
+		return
+	case RoomGet:
+		if roomData.Id == "" {
+			http.Error(w, "Must specify room id", http.StatusBadRequest)
+			return
+		}
+
+		roomDataLoaded, err := room.GetRoom(roomData.Id)
+		if err != nil {
+			http.Error(w, "Cannot get room: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		serializedRoom, err := room.SerializeRoom(roomDataLoaded)
+		if err != nil {
+			http.Error(w, "Cannot serialize room data: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Write([]byte(serializedRoom))
+		return
+	default:
+		http.Error(w, "Unsupported room method", http.StatusBadRequest)
+	}
+}
+
 func main() {
 	corsOptions := []func(h http.Handler) http.Handler{
 		func(h http.Handler) http.Handler {
@@ -146,6 +219,7 @@ func main() {
 	http.Handle("/send_message", corsOptions[0](http.HandlerFunc(send_message)))
 	http.Handle("/query_messages", corsOptions[0](http.HandlerFunc(query_messages)))
 	http.Handle("/auth", corsOptions[0](http.HandlerFunc(auth)))
+	http.Handle("/room", corsOptions[0](http.HandlerFunc(roomEndpoint)))
 
 	http.ListenAndServe(":8090", nil)
 }
