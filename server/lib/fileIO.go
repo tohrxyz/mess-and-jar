@@ -26,10 +26,7 @@ func FilepathFromUser(username string) string {
 
 func createDirIfNotExists(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		fmt.Printf("%s dir doesnt exist yet, will create\n", dir)
 		return os.MkdirAll(dir, 0755)
-	} else {
-		fmt.Printf("%s dir exists already\n", dir)
 	}
 	return nil
 }
@@ -41,14 +38,10 @@ func createFileIfNotExists(filepath string, dir string) error {
 	}
 
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		fmt.Printf("Creating file: %s\n", filepath)
 		_, err := os.Create(filepath)
 		if err != nil {
-			fmt.Println("hello: ", err)
 			return Check(err)
 		}
-	} else {
-		fmt.Printf("File exists: %s\n", filepath)
 	}
 	return nil
 }

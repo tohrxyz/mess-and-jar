@@ -148,6 +148,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 
 	switch method {
 	case RoomCreate:
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Creating room: ", roomData.Id)
 		if roomData.Id == "" || roomData.Name == "" || roomData.Password == "" {
 			http.Error(w, "Must specify room id, name and password", http.StatusBadRequest)
 			return
@@ -161,6 +162,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusCreated)))
 		return
 	case RoomEdit:
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Editing room: ", roomData.Id)
 		if roomData.Id == "" || roomData.Name == "" || roomData.Password == "" {
 			http.Error(w, "Must specify room id, name and password", http.StatusBadRequest)
 			return
@@ -175,6 +177,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusOK)))
 		return
 	case RoomGet:
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Querying room: ", roomData.Id)
 		if roomData.Id == "" {
 			http.Error(w, "Must specify room id", http.StatusBadRequest)
 			return
