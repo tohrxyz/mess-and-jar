@@ -7,6 +7,7 @@ import (
 )
 
 const DB_DIR = "./db"
+const ROOMS_DIR = "rooms"
 
 func Check(e error) error {
 	if e != nil {
@@ -25,7 +26,10 @@ func FilepathFromUser(username string) string {
 
 func createDirIfNotExists(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		fmt.Printf("%s dir doesnt exist yet, will create\n", dir)
 		return os.MkdirAll(dir, 0755)
+	} else {
+		fmt.Printf("%s dir exists already\n", dir)
 	}
 	return nil
 }
@@ -37,12 +41,21 @@ func createFileIfNotExists(filepath string, dir string) error {
 	}
 
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		fmt.Printf("Creating file: %s\n", filepath)
 		_, err := os.Create(filepath)
 		if err != nil {
+			fmt.Println("hello: ", err)
 			return Check(err)
 		}
+	} else {
+		fmt.Printf("File exists: %s\n", filepath)
 	}
 	return nil
+}
+
+func CreateDirOrFileIfNotExists(dir string, filepath string) error {
+	err := createFileIfNotExists(filepath, dir)
+	return err
 }
 
 func WriteStringifiedJsonToFileAppend(val string, room string) error {
@@ -68,6 +81,52 @@ func WriteStringifiedJsonToFileAppend(val string, room string) error {
 		fmt.Println("Error creating file: ", err)
 		return err
 	}
+}
+
+func WriteToFile(val string, dir string, filepath string, isAppend bool) error {
+	valBytes := []byte(val + "\n")
+
+	err := CreateDirOrFileIfNotExists(dir, filepath)
+	if err == nil {
+		var openMode int
+		if isAppend {
+			openMode = os.O_APPEND
+		} else {
+			openMode = os.O_WRONLY
+		}
+		f, err := os.OpenFile(filepath, openMode, 0644)
+		if err != nil {
+			return Check(err)
+		}
+
+		defer f.Close()
+
+		_, err = f.Write(valBytes)
+		if err != nil {
+			return Check(err)
+		}
+
+		return nil
+	} else {
+		return err
+	}
+}
+
+func ReadFile(filepath string) ([]byte, error) {
+	if !checkIfFileExists(filepath) {
+		return nil, fmt.Errorf("%s does not exist, cannot read", filepath)
+	}
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, Check(err)
+	}
+	defer f.Close()
+
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func checkIfFileExists(filepath string) bool {
