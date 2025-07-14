@@ -76,7 +76,12 @@ export default function RoomPage() {
         <main className="flex flex-col h-full">
             {/* topbar */}
             <div className="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-                <h1 className="text-lg font-semibold text-white">Room {room_id?.slice(0, 4) + "..." + room_id?.slice(-4)}</h1>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <h1 className="text-xl font-bold text-white tracking-wide">
+                        {room?.name || 'Loading...'}
+                    </h1>
+                </div>
                 <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
                 {/* hamburger menu button */}
                 <button 
