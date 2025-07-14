@@ -51,7 +51,36 @@ func CreateRoom(room lib.Room) error {
 }
 
 func EditRoom(room lib.Room) error {
-	err := CreateRoom(room)
+	exists, err := CheckRoomExistAlready(room.Id)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("room with id %s does not exist, cannot edit", room.Id)
+	}
+
+	roomObject, err := GetRoom(room.Id)
+	if err != nil {
+		return err
+	}
+
+	if roomObject.Password != room.Password {
+		return fmt.Errorf("unathorized to edit room with id %s", room.Id)
+	}
+
+	filepath := RoomFilepathFromId(room.Id)
+	err = lib.CreateDirOrFileIfNotExists(lib.DB_DIR+"/"+ROOM_DIR, filepath)
+	if err != nil {
+		return err
+	}
+
+	serializedData, err := SerializeRoom(room)
+	if err != nil {
+		return err
+	}
+
+	err = lib.WriteToFile(serializedData, ROOM_DIR, filepath, false)
+
 	return err
 }
 
