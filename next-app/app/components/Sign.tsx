@@ -36,6 +36,12 @@ export default function Sign() {
         }
     }
 
+    const handleOnKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && (user.password.trim().length > 0 && user.username.trim().length > 0)) {
+            await handleAuthenticate()
+        }
+    }
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
             <div className="w-full max-w-md min-w-sm">
@@ -55,6 +61,7 @@ export default function Sign() {
                                 placeholder="Enter your username" 
                                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                                 value={user.username}
+                                onKeyDown={handleOnKeyDown}
                                 onChange={(e) => setUser({ ...user, username: e.target.value })}
                             />
                         </div>
@@ -69,6 +76,7 @@ export default function Sign() {
                                 placeholder="Enter your password" 
                                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                                 value={user.password}
+                                onKeyDown={handleOnKeyDown}
                                 onChange={(e) => setUser({ ...user, password: e.target.value })}
                             />
                         </div>
