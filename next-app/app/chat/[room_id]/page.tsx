@@ -13,6 +13,11 @@ import { decryptStringClient } from "@/app/lib/crypto-client";
 import HamburgerMenu from "@/app/components/HamburgerMenu";
 import RoomInfoDropdown from "@/app/components/RoomInfoDropdown";
 
+const formatName = (name: string | undefined, maxLen: number) => {
+    if (!name) return ""
+    const len = name.length
+    return len > maxLen ? name.slice(0, maxLen - 3) + "..." : name
+}
 export default function RoomPage() {
     const router = useRouter();
     const { room_id } = useParams();
@@ -76,15 +81,19 @@ export default function RoomPage() {
     return (
         <main className="flex flex-col h-full">
             {/* topbar */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <h1 className="text-xl font-bold text-white tracking-wide">
-                        {room?.name || 'Loading...'}
-                    </h1>
-                    {room && <RoomInfoDropdown room={room} />}
+            <div className="flex justify-between items-start p-4 border-b border-gray-700 flex-shrink-0">
+                <div className="flex flex-col items-center gap-2 md:min-w-[40vw] md:items-start">
+                    <div className="flex justify-between items-center gap-x-2 w-full justify-start">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <p className="text-sm lg:text-xl font-bold text-white tracking-wide max-w-[20vh] md:min-w-[30vw]">
+                            {formatName(room?.name, 30) || 'Loading...'}
+                        </p>
+                        {room && <RoomInfoDropdown room={room} />}
+                    </div>
+                <div className="flex justify-start w-full">
+                    <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
                 </div>
-                <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
+                </div>
                 {/* hamburger menu button */}
                 <button 
                     className="text-white text-sm cursor-pointer hover:text-gray-400 lg:hidden"
@@ -96,7 +105,7 @@ export default function RoomPage() {
                 </button>
             </div>
             {/* messages */}
-            <div className="flex-1 min-h-0 max-h-[calc(100vh-7.5rem)] overflow-y-hidden">
+            <div className="flex-1 min-h-0 max-h-[calc(100vh-9.5rem)] overflow-y-hidden">
                 <MessageArea
                     messages={messages}
                     currentUsername={JSON.parse(user ?? "{}").username}

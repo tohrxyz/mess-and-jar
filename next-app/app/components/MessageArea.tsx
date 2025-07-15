@@ -131,7 +131,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
 
     return (
         <div 
-            className="flex-1 overflow-y-scroll p-6 space-y-4 min-h-0 max-h-[calc(100vh-7.5rem)]" 
+            className="flex-1 overflow-y-scroll p-6 space-y-4 min-h-0 max-h-[calc(100vh-9.5rem)]" 
             ref={messageAreaScrollRef}
             onScroll={(e) => {
                 if (!isScrolledManuallyRef.current) {
