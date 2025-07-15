@@ -11,6 +11,7 @@ import MessageInput from "@/app/components/MessageInput";
 import { useMessages } from "@/app/queries/messages";
 import { decryptStringClient } from "@/app/lib/crypto-client";
 import HamburgerMenu from "@/app/components/HamburgerMenu";
+import RoomInfoDropdown from "@/app/components/RoomInfoDropdown";
 
 export default function RoomPage() {
     const router = useRouter();
@@ -81,6 +82,7 @@ export default function RoomPage() {
                     <h1 className="text-xl font-bold text-white tracking-wide">
                         {room?.name || 'Loading...'}
                     </h1>
+                    {room && <RoomInfoDropdown room={room} />}
                 </div>
                 <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
                 {/* hamburger menu button */}
