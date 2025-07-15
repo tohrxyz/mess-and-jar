@@ -7,8 +7,9 @@ export const roomOperation = async ({ id, name, password, method }: RoomParams):
     if (!user || !user?.password || !user?.username) throw new Error("Can't get local user config")
 
     const formData = new FormData();
+    const urlEncodedName = encodeURIComponent(name || "")
     formData.append("id", id);
-    formData.append("name", name || "");
+    formData.append("name", urlEncodedName);
     formData.append("password", password || "");
     formData.append("method", method)
 

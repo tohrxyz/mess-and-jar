@@ -87,9 +87,10 @@ export default function Sidebar() {
             id: uuidv4(),
             password: ""
         });
+        const encryptedRoomName = encryptStringClient(room.name, room.password)
         await roomOperation({ 
             id: room.id, 
-            name: encryptStringClient(room.name, room.password), 
+            name: encryptedRoomName, 
             password: getHashClient(room.password), 
             method: RoomBackendMethod.RoomCreate
         })
@@ -100,7 +101,7 @@ export default function Sidebar() {
     const handleDeleteRoom = (id: string) => {
         const newRooms = rooms.filter((room) => room.id !== id);
         setRooms(newRooms);
-        window.location.replace(`/chat`)
+        router.replace(`/chat`)
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(newRooms));
     }
 
