@@ -2,7 +2,7 @@
 import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
 import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "../lib/localStorage";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
 import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
@@ -27,6 +27,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         password: ""
     });
     const [rooms, setRooms] = useState<Room[]>([]);
+    const selectedRoomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
@@ -34,6 +35,16 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             setRooms(JSON.parse(rooms));
         }
     }, []);
+
+    // Auto-scroll to selected room when menu opens or rooms/room_id changes
+    useEffect(() => {
+        if (isOpen && selectedRoomRef.current && room_id) {
+            selectedRoomRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [isOpen, rooms, room_id]);
 
     // Close menu when clicking outside or pressing escape
     useEffect(() => {
@@ -317,6 +328,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                                 {rooms.map((room) => (
                                     <div 
                                         key={room.id} 
+                                        ref={room.id === room_id ? selectedRoomRef : null}
                                         className={`flex items-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer border-2 transition-colors ${room.id === room_id ? "border-blue-500" : "border-transparent"}`}
                                         onClick={() => handleRoomClick(room.id)}
                                     >
