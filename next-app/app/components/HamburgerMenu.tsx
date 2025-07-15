@@ -3,8 +3,10 @@ import { LOCAL_STORAGE_KEYS } from "../constants/localStorageKeys";
 import { clearStorage, exportLocalConfig, getFromStorage, saveToStorage } from "../lib/localStorage";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Room } from "../types/room";
+import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
+import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
+import { roomOperation } from "../mutations/room";
 
 interface HamburgerMenuProps {
     isOpen: boolean;
@@ -97,7 +99,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         }));
     }
 
-    const handleCreateRoom = () => {
+    const handleCreateRoom = async () => {
         const room: Room = {
             id: createFormData.id,
             name: createFormData.name,
@@ -110,6 +112,13 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             id: uuidv4(),
             password: ""
         });
+        const encryptedRoomName = encryptStringClient(room.name, room.password)
+        await roomOperation({ 
+            id: room.id, 
+            name: encryptedRoomName, 
+            password: getHashClient(room.password), 
+            method: RoomBackendMethod.RoomCreate
+        })
         setActiveDropdown(null);
         onClose();
         router.push(`/chat/${room.id}`);
@@ -119,15 +128,20 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         const newRooms = rooms.filter((room) => room.id !== id);
         setRooms(newRooms);
         onClose();
-        window.location.replace(`/chat`)
+        router.replace(`/chat`)
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(newRooms));
     }
 
-    const handleJoin = () => {
+    const handleJoin = async () => {
         setActiveDropdown(null);
+        const roomResponse = await roomOperation({
+            id: joinFormData.id,
+            method: RoomBackendMethod.RoomGet
+        }) as RoomGetResponse
+        const decryptedName = decryptStringClient(roomResponse?.room?.name ?? "", joinFormData.password)
         const room: Room = {
             id: joinFormData.id,
-            name: `unknown ${Math.random().toString(36).substring(2, 15)}`,
+            name: decryptedName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
             password: joinFormData.password
         }
 
