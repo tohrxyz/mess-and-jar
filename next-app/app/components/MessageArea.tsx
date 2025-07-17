@@ -20,6 +20,7 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     const [displayText, setDisplayText] = useState<string>("");
     const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [isImagePlaceholder, setIsImagePlaceholder] = useState<boolean>(false);
     
     const renderMessageWithLinks = (text: string) => {
         // URL regex pattern to detect URLs
@@ -77,7 +78,11 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
             const mediaPrefix = "<<<$#!";
             const mediaSuffix = "!#$>>>";
             if (decryptedMessage.startsWith(mediaPrefix) && decryptedMessage.endsWith(mediaSuffix)) {
-                const fileId = decryptedMessage.slice(mediaPrefix.length, decryptedMessage.length - mediaSuffix.length);
+                const fileId = decryptedMessage.slice(mediaPrefix.length, decryptedMessage.length - mediaSuffix.length); 
+                if (isMounted) {
+                    setIsImagePlaceholder(true);
+                }
+
                 try {
                     const resp = await mutateDownloadMedia(fileId);
                     if (!resp.success || !resp.data) {
@@ -85,7 +90,7 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                     }
 
                     // Convert ArrayBuffer -> string (encrypted binary)
-                    const encryptedString = new TextDecoder().decode(new Uint8Array(resp.data));
+                    const encryptedString = new TextDecoder().decode(new Uint8Array(resp.data)).trim();
 
                     // Decrypt binary
                     const decryptedBinary = decryptBinaryClient(encryptedString, room.password);
@@ -93,7 +98,6 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                         throw new Error("Decrypt failed");
                     }
 
-                    // Create object URL for image
                     const blob = new Blob([decryptedBinary]);
                     const url = URL.createObjectURL(blob);
 
@@ -103,8 +107,9 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                     }
                 } catch (error) {
                     if (isMounted) {
-                        setDisplayText("Unable to load media");
+                        setDisplayText("Unable to load media: " + error);
                         setIsDecrypting(false);
+                        setIsImagePlaceholder(false);
                     }
                 }
                 return;
@@ -131,14 +136,16 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
         return () => {
             isMounted = false;
             if (glitchInterval) clearInterval(glitchInterval);
-            if (imageSrc) URL.revokeObjectURL(imageSrc);
+            if (imageSrc && imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
         };
     }, [message.msg, room?.password]);
+
+    const isMedia = Boolean(imageSrc) || isImagePlaceholder;
 
     return (
         <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
             <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-[20px] ${isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none'} ${
+                className={`${isMedia ? 'max-w-md sm:max-w-lg lg:max-w-xl' : 'max-w-xs lg:max-w-md'} px-4 py-2 rounded-[20px] ${isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none'} ${
                     isCurrentUser
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-700 text-gray-100'
@@ -150,12 +157,14 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                     </div>
                 )}
                 {imageSrc ? (
-                    <img src={imageSrc} alt="media" className="max-w-full h-auto rounded" />
-                ) : (
-                    <div className={`${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>
-                        {displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}
+                    <div className="relative w-full aspect-[2/3] min-w-64">
+                        <img src={imageSrc} alt="media" className="absolute inset-0 w-full h-full object-cover rounded" />
                     </div>
-                )}
+                ) : isImagePlaceholder ? (
+                    <div className="w-full aspect-[2/3] bg-gray-600 animate-pulse rounded min-w-64" />
+                ) : (
+                    <div className={`${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>{displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}</div>
+                 )}
             </div>
         </div>
     );
