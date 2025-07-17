@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
-import { mutateSendMessage } from "../mutations/message";
-import { encryptStringClient } from "../lib/crypto-client";
+import { mutateSendMessage, mutateUploadMedia } from "../mutations/message";
+import { encryptBinaryClient, encryptStringClient } from "../lib/crypto-client";
 import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
+import { v4 as uuid } from "uuid";
 
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
@@ -49,6 +50,23 @@ export default function MessageInput() {
         }
     }
 
+    const handleSendMedia = async (file: File) => {
+        if (!room || !room?.password) throw new Error(`Can't access room [${room?.id}] password.`)
+        console.log({ file })
+        const loadedFile = await file.arrayBuffer()
+        const encryptedBinary = encryptBinaryClient(loadedFile, room?.password)
+        if (!encryptedBinary) throw new Error(`Can't encrypt the media`)
+
+        const newFileId = uuid()
+        const res = await mutateUploadMedia(encryptedBinary, newFileId)
+        console.log({res})
+
+        const msgInjected = `<<<$#!${newFileId}!#$>>>`
+        if (res.success) {
+            await handleSendMessage(msgInjected)
+        }
+    }
+
     return (
         <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex-shrink-0">
             <div className="flex space-x-4">
@@ -61,6 +79,27 @@ export default function MessageInput() {
                     onKeyDown={handleOnKeyDown}
                     suppressHydrationWarning
                 />
+                <input
+                    type="file"
+                    id="file-input"
+                    className="hidden"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                            handleSendMedia(file);
+                        }
+                    }}
+                />
+                <button 
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors duration-200"
+                    onClick={() => {
+                        document.getElementById('file-input')?.click();
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                    </svg>
+                </button>
                 <button 
                     className={`bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-medium transition-colors duration-200 ${error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""}`} 
                     onClick={() => handleSendMessage(inputMessage)}
