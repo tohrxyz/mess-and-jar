@@ -32,3 +32,67 @@ export const mutateSendMessage = async (room: string, username: string, msg: str
         message: "Message sent successfully",
     };
 };
+
+export type UploadMediaResponse = {
+    success: boolean;
+    message: string;
+}
+
+export const mutateUploadMedia = async (
+    binaryData: string,
+    file_id: string
+): Promise<UploadMediaResponse> => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+    
+    const response = await fetch(`${apiUrl}/upload_media?file_id=${file_id}`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/octet-stream',
+        },
+        body: binaryData,
+    });
+    
+    if (!response.ok) {
+        return {
+            success: false,
+            message: "Failed to upload media",
+        };
+    }
+    
+    return {
+        success: true,
+        message: "Media uploaded successfully",
+    };
+};
+
+export type DownloadMediaResponse = {
+    success: boolean;
+    data: ArrayBuffer | null;
+    message: string;
+}
+
+export const mutateDownloadMedia = async (
+    file_id: string
+): Promise<DownloadMediaResponse> => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
+    
+    const response = await fetch(`${apiUrl}/download_media?file_id=${file_id}`, {
+        method: "GET",
+    });
+    
+    if (!response.ok) {
+        return {
+            success: false,
+            data: null,
+            message: "Failed to download media",
+        };
+    }
+    
+    const binaryData = await response.arrayBuffer();
+    
+    return {
+        success: true,
+        data: binaryData,
+        message: "Media downloaded successfully",
+    };
+};
