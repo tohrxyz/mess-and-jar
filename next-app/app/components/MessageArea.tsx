@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Message } from "../types";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { scrollToBottom } from "../lib/scroll-util";
-import { decryptStringClient } from "../lib/crypto-client";
+import { decryptStringClient, decryptBinaryClient } from "../lib/crypto-client";
+import { mutateDownloadMedia } from "../mutations/message";
 
 interface MessageAreaProps {
     messages: Message[];
@@ -18,6 +19,7 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     const { room } = useRoomContext();
     const [displayText, setDisplayText] = useState<string>("");
     const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
     
     const renderMessageWithLinks = (text: string) => {
         // URL regex pattern to detect URLs
@@ -48,36 +50,89 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
     };
 
     useEffect(() => {
-        if (!room?.password || !message.msg) {
-            setDisplayText(message.msg || "Unable to decrypt message");
-            setIsDecrypting(false);
-            return;
-        }
+        let isMounted = true;
+        let glitchInterval: NodeJS.Timeout | null = null;
 
-        // Try to decrypt the message
-        const decryptedMessage = message.isSentFromClient ? message.msg : decryptStringClient(message.msg, room.password);
-        
-        if (!decryptedMessage) {
-            setDisplayText("Unable to decrypt message");
-            setIsDecrypting(false);
-            return;
-        }
-
-        // Start glitch animation
-        let glitchCount = 0;
-        const maxGlitches = 8;
-        const glitchInterval = setInterval(() => {
-            if (glitchCount < maxGlitches) {
-                setDisplayText(generateGlitchText(decryptedMessage.length));
-                glitchCount++;
-            } else {
-                setDisplayText(decryptedMessage);
-                setIsDecrypting(false);
-                clearInterval(glitchInterval);
+        const processMessage = async () => {
+            if (!room?.password || !message.msg) {
+                if (isMounted) {
+                    setDisplayText(message.msg || "Unable to decrypt message");
+                    setIsDecrypting(false);
+                }
+                return;
             }
-        }, 50);
 
-        return () => clearInterval(glitchInterval);
+            // Try to decrypt the message (text placeholder)
+            const decryptedMessage = message.isSentFromClient ? message.msg : decryptStringClient(message.msg, room.password);
+
+            if (!decryptedMessage) {
+                if (isMounted) {
+                    setDisplayText("Unable to decrypt message");
+                    setIsDecrypting(false);
+                }
+                return;
+            }
+
+            // Check if the decrypted message is a media placeholder
+            const mediaPrefix = "<<<$#!";
+            const mediaSuffix = "!#$>>>";
+            if (decryptedMessage.startsWith(mediaPrefix) && decryptedMessage.endsWith(mediaSuffix)) {
+                const fileId = decryptedMessage.slice(mediaPrefix.length, decryptedMessage.length - mediaSuffix.length);
+                try {
+                    const resp = await mutateDownloadMedia(fileId);
+                    if (!resp.success || !resp.data) {
+                        throw new Error("Download failed");
+                    }
+
+                    // Convert ArrayBuffer -> string (encrypted binary)
+                    const encryptedString = new TextDecoder().decode(new Uint8Array(resp.data));
+
+                    // Decrypt binary
+                    const decryptedBinary = decryptBinaryClient(encryptedString, room.password);
+                    if (!decryptedBinary) {
+                        throw new Error("Decrypt failed");
+                    }
+
+                    // Create object URL for image
+                    const blob = new Blob([decryptedBinary]);
+                    const url = URL.createObjectURL(blob);
+
+                    if (isMounted) {
+                        setImageSrc(url);
+                        setIsDecrypting(false);
+                    }
+                } catch (error) {
+                    if (isMounted) {
+                        setDisplayText("Unable to load media");
+                        setIsDecrypting(false);
+                    }
+                }
+                return;
+            }
+
+            // Not a media placeholder -> do glitch animation then display text
+            let glitchCount = 0;
+            const maxGlitches = 8;
+            glitchInterval = setInterval(() => {
+                if (!isMounted) return;
+                if (glitchCount < maxGlitches) {
+                    setDisplayText(generateGlitchText(decryptedMessage.length));
+                    glitchCount++;
+                } else {
+                    setDisplayText(decryptedMessage);
+                    setIsDecrypting(false);
+                    if (glitchInterval) clearInterval(glitchInterval);
+                }
+            }, 50);
+        };
+
+        processMessage();
+
+        return () => {
+            isMounted = false;
+            if (glitchInterval) clearInterval(glitchInterval);
+            if (imageSrc) URL.revokeObjectURL(imageSrc);
+        };
     }, [message.msg, room?.password]);
 
     return (
@@ -94,9 +149,13 @@ function MessageItem({ message, isCurrentUser }: MessageItemProps) {
                         {message.username}
                     </div>
                 )}
-                <div className={`${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>
-                    {displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}
-                </div>
+                {imageSrc ? (
+                    <img src={imageSrc} alt="media" className="max-w-full h-auto rounded" />
+                ) : (
+                    <div className={`${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>
+                        {displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}
+                    </div>
+                )}
             </div>
         </div>
     );
