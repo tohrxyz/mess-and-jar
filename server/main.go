@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"server/lib"
+	"server/lib/media"
 	"server/lib/room"
 	"strconv"
 	"time"
@@ -202,6 +204,64 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func uploadMedia(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Uploading media")
+
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Cannot read request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer req.Body.Close()
+
+	fileID := req.URL.Query().Get("file_id")
+	if fileID == "" {
+		http.Error(w, "file_id parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	err = media.SaveMediaToFile(string(data), fileID)
+	if err != nil {
+		http.Error(w, "Cannot save the file", http.StatusBadRequest)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Media uploaded successfully"))
+}
+
+func downloadMedia(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Downloading media")
+
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the file_id from the URL parameters
+	fileID := req.URL.Query().Get("file_id")
+	if fileID == "" {
+		http.Error(w, "file_id parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	binaryData, err := media.GetMediaFromFile(fileID)
+	if err != nil {
+		http.Error(w, "Cannot read the file: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(binaryData)))
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(binaryData))
+}
+
 func main() {
 	corsOptions := []func(h http.Handler) http.Handler{
 		func(h http.Handler) http.Handler {
@@ -223,6 +283,8 @@ func main() {
 	http.Handle("/query_messages", corsOptions[0](http.HandlerFunc(query_messages)))
 	http.Handle("/auth", corsOptions[0](http.HandlerFunc(auth)))
 	http.Handle("/room", corsOptions[0](http.HandlerFunc(roomEndpoint)))
+	http.Handle("/upload_media", corsOptions[0](http.HandlerFunc(uploadMedia)))
+	http.Handle("/download_media", corsOptions[0](http.HandlerFunc(downloadMedia)))
 
 	http.ListenAndServe(":8090", nil)
 }
