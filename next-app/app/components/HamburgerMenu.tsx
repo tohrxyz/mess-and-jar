@@ -200,7 +200,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             />
             
             {/* Menu Content */}
-            <div className="absolute inset-0 bg-gray-800 flex flex-col">
+            <div className="absolute inset-0 bg-gray-800 flex flex-col overflow-y-auto">
                 {/* Header with close button */}
                 <div className="flex justify-between items-center p-4 border-b border-gray-700">
                     <h1 className="text-xl font-semibold text-white">Menu</h1>
