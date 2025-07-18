@@ -95,11 +95,49 @@ export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageI
         if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
     };
 
-    // Hide long-press state when menu closes
+    // Reset long-press highlight when the menu closes
     useEffect(() => {
         if (!showInfoMenu) {
             setIsLongPress(false);
         }
+    }, [showInfoMenu]);
+
+    // Auto-close the info menu after the bubble has been outside the viewport for ≥10 s
+    const bubbleRef = useRef<HTMLDivElement | null>(null);
+    const notVisibleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (!showInfoMenu) return;
+
+        const node = bubbleRef.current;
+        if (!node) return;
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                // In view → clear any pending close timer
+                if (notVisibleTimerRef.current) {
+                    clearTimeout(notVisibleTimerRef.current);
+                    notVisibleTimerRef.current = null;
+                }
+            } else {
+                // Out of view → start 10 s timer to auto-close
+                if (!notVisibleTimerRef.current) {
+                    notVisibleTimerRef.current = setTimeout(() => {
+                        setShowInfoMenu(false);
+                    }, 10000);
+                }
+            }
+        });
+
+        observer.observe(node);
+
+        return () => {
+            observer.disconnect();
+            if (notVisibleTimerRef.current) {
+                clearTimeout(notVisibleTimerRef.current);
+                notVisibleTimerRef.current = null;
+            }
+        };
     }, [showInfoMenu]);
 
     useEffect(() => {
@@ -231,6 +269,7 @@ export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageI
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                     onTouchCancel={handleTouchEnd}
+                    ref={bubbleRef}
                 >
                     {!isCurrentUser && (
                         <div className="text-xs font-medium mb-1 opacity-75 select-none">
