@@ -84,9 +84,9 @@ export default function MessageInput() {
     }
 
     return (
-        <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex-shrink-0 relative">
+        <div className="bg-gray-800 border-t border-gray-700 relative">
             {(isUploading || error) && (
-                <div className="absolute bottom-13 px-2 w-full left-0 bg-gray-800 py-2">
+                <div className="absolute bottom-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-2">
                     <div className="flex items-center space-x-2 text-sm">
                         {isUploading ? (
                             <>
@@ -109,11 +109,12 @@ export default function MessageInput() {
                     )}
                 </div>
             )}
-            <div className="flex space-x-4">
+            
+            <div className="flex space-x-2 py-2 pl-2 pr-2">
                 <input
                     type="text"
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={handleOnKeyDown}
@@ -134,7 +135,7 @@ export default function MessageInput() {
                     disabled={isUploading}
                 />
                 <button 
-                    className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                    className={`p-2 rounded-lg transition-all duration-200 ${
                         isUploading 
                             ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
                             : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
@@ -157,7 +158,7 @@ export default function MessageInput() {
                     )}
                 </button>
                 <button 
-                    className={`bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-medium transition-colors duration-200 ${
+                    className={`bg-blue-600 hover:bg-blue-700 text-white px-2 rounded-lg font-medium transition-colors duration-200 ${
                         error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""
                     } ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`} 
                     onClick={() => handleSendMessage(inputMessage)}

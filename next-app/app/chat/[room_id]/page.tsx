@@ -78,10 +78,10 @@ export default function RoomPage() {
             }
         }
     }, [queriedMessages, room_id])
+    
     return (
-        <main className="flex flex-col h-full">
-            {/* topbar */}
-            <div className="flex justify-between items-start p-4 border-b border-gray-700 flex-shrink-0">
+        <div className="h-full grid grid-rows-[auto_1fr_auto] bg-gray-900">
+            <header className="flex justify-between items-start p-4 border-b border-gray-700">
                 <div className="flex flex-col items-center gap-2 md:min-w-[40vw] md:items-start">
                     <div className="flex justify-between items-center gap-x-2 w-full justify-start">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -90,9 +90,9 @@ export default function RoomPage() {
                         </p>
                         {room && <RoomInfoDropdown room={room} />}
                     </div>
-                <div className="flex justify-start w-full">
-                    <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
-                </div>
+                    <div className="flex justify-start w-full">
+                        <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
+                    </div>
                 </div>
                 {/* hamburger menu button */}
                 <button 
@@ -103,24 +103,24 @@ export default function RoomPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-            </div>
-            {/* messages */}
-            <div className="flex-1 min-h-0 max-h-[calc(100vh-9.5rem)] overflow-y-hidden">
+            </header>
+
+            <main className="min-h-0 overflow-hidden">
                 <MessageArea
                     messages={messages}
                     currentUsername={JSON.parse(user ?? "{}").username}
                 />
-            </div>
-            {/* message input */}
-            <div className="flex-shrink-0">
+            </main>
+
+            <footer>
                 <MessageInput />
-            </div>
+            </footer>
             
             {/* Hamburger Menu */}
             <HamburgerMenu 
                 isOpen={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}
             />
-        </main>
+        </div>
     )
 }
