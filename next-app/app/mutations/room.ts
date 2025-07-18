@@ -32,7 +32,10 @@ export const roomOperation = async ({ id, name, password, method }: RoomParams):
         return {
             success: true,
             message: "Room retrieved successfully",
-            room: roomData
+            room: {
+                ...roomData,
+                name: decodeURIComponent(roomData.name)
+            }
         };
     }
     
