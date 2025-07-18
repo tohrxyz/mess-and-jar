@@ -14,6 +14,7 @@ import (
 func parseDate(date_str string) int64 {
 	num, err := strconv.ParseInt(date_str, 10, 64)
 	if err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] Failed to parse date:", date_str, "- error:", err)
 		return int64(time.Now().Second())
 	}
 	return num
@@ -23,6 +24,7 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Sending message")
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	message := lib.Message{
@@ -34,7 +36,7 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 
 	user, err := lib.GetUser(message.Username)
 	if err != nil {
-		fmt.Println("Can't get user: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't get user:", message.Username, "- error:", err)
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -46,14 +48,14 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 
 	stringifiedMessage, err := lib.MessageToJson(message)
 	if err != nil {
-		fmt.Println("Can't stringify message: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't stringify message for user:", message.Username, "room:", message.Room, "- error:", err)
 		http.Error(w, "Can't process your message", http.StatusInternalServerError)
 		return
 	}
 
 	err = lib.WriteStringifiedJsonToFileAppend(stringifiedMessage, message.Room)
 	if err != nil {
-		fmt.Println("Can't save message: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't save message for user:", message.Username, "room:", message.Room, "- error:", err)
 		http.Error(w, "Can't save your message", http.StatusInternalServerError)
 		return
 	}
@@ -68,14 +70,14 @@ func query_messages(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Querying messages for room: ", room)
 	history, err := lib.ReadHistoryFromFile(room)
 	if err != nil {
-		fmt.Println("Can't read history: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't read history for room:", room, "- error:", err)
 		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
 		return
 	}
 
 	filteredHistory, err := lib.GetChatHistoryAfterTimestamp(history, parseDate(timestamp))
 	if err != nil {
-		fmt.Println("Can't filter history: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't filter history for room:", room, "timestamp:", timestamp, "- error:", err)
 		http.Error(w, "Can't filter the room history", http.StatusInternalServerError)
 		return
 	}
@@ -88,6 +90,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	username := req.FormValue("username")
@@ -105,7 +108,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 
 	user, err := lib.GetUser(username)
 	if err != nil {
-		fmt.Println("Can't get user: ", err)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't get user:", username, "- error:", err)
 		http.Error(w, "Can't get user", http.StatusInternalServerError)
 		return
 	}
@@ -113,6 +116,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 	if user.Username == "" {
 		err = lib.CreateUser(username, password)
 		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't create user:", username, "- error:", err)
 			http.Error(w, "Can't create user", http.StatusInternalServerError)
 			return
 		}
@@ -157,6 +161,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 		}
 		err := room.CreateRoom(roomData)
 		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot create room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot create room: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -172,6 +177,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 
 		err := room.EditRoom(roomData)
 		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot edit room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot edit room: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -187,12 +193,14 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 
 		roomDataLoaded, err := room.GetRoom(roomData.Id)
 		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot get room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot get room: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		serializedRoom, err := room.SerializeRoom(roomDataLoaded)
 		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot serialize room data for room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot serialize room data: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -205,7 +213,8 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 }
 
 func uploadMedia(w http.ResponseWriter, req *http.Request) {
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Uploading media")
+	fileID := req.URL.Query().Get("file_id")
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Uploading media with ID:", fileID)
 
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -214,12 +223,12 @@ func uploadMedia(w http.ResponseWriter, req *http.Request) {
 
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] uploadMedia: Cannot read request body for file ID:", fileID, "- error:", err)
 		http.Error(w, "Cannot read request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer req.Body.Close()
 
-	fileID := req.URL.Query().Get("file_id")
 	if fileID == "" {
 		http.Error(w, "file_id parameter is required", http.StatusBadRequest)
 		return
@@ -227,7 +236,9 @@ func uploadMedia(w http.ResponseWriter, req *http.Request) {
 
 	err = media.SaveMediaToFile(string(data), fileID)
 	if err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] uploadMedia: Cannot save the file for ID:", fileID, "- error:", err)
 		http.Error(w, "Cannot save the file", http.StatusBadRequest)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -235,15 +246,14 @@ func uploadMedia(w http.ResponseWriter, req *http.Request) {
 }
 
 func downloadMedia(w http.ResponseWriter, req *http.Request) {
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Downloading media")
+	fileID := req.URL.Query().Get("file_id")
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Downloading media with ID:", fileID)
 
 	if req.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get the file_id from the URL parameters
-	fileID := req.URL.Query().Get("file_id")
 	if fileID == "" {
 		http.Error(w, "file_id parameter is required", http.StatusBadRequest)
 		return
@@ -251,6 +261,7 @@ func downloadMedia(w http.ResponseWriter, req *http.Request) {
 
 	binaryData, err := media.GetMediaFromFile(fileID)
 	if err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] downloadMedia: Cannot read the file for ID:", fileID, "- error:", err)
 		http.Error(w, "Cannot read the file: "+err.Error(), http.StatusNotFound)
 		return
 	}
