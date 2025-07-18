@@ -6,6 +6,7 @@ import { encryptBinaryClient, encryptStringClient } from "../lib/crypto-client";
 import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
 import { v4 as uuid } from "uuid";
+import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
@@ -52,17 +53,17 @@ export default function MessageInput() {
 
     const handleSendMedia = async (file: File) => {
         if (!room || !room?.password) throw new Error(`Can't access room [${room?.id}] password.`)
-        console.log({ file })
         const loadedFile = await file.arrayBuffer()
         const encryptedBinary = encryptBinaryClient(loadedFile, room?.password)
         if (!encryptedBinary) throw new Error(`Can't encrypt the media`)
 
         const newFileId = uuid()
         const res = await mutateUploadMedia(encryptedBinary, newFileId)
-        console.log({res})
 
         const msgInjected = `<<<$#!${newFileId}!#$>>>`
         if (res.success) {
+            await saveImage({ id: newFileId, timestamp: Date.now(), blob: new Blob([loadedFile])})
+            await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
             await handleSendMessage(msgInjected)
         }
     }
