@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryClientProvider from "./QueryClientProvider";
 import type { Viewport } from "next";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Prevent errors on browsers (e.g., Brave iOS) where window.ethereum is undefined */}
+        <Script id="ethereum-stub" strategy="beforeInteractive">
+          {`
+            if (typeof window !== 'undefined' && typeof window.ethereum === 'undefined') {
+              window.ethereum = {};
+            }
+          `}
+        </Script>
         <QueryClientProvider>
           {children}
         </QueryClientProvider>
