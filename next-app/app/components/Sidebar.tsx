@@ -161,9 +161,9 @@ export default function Sidebar() {
     }
 
     return (
-        <article> 
+        <article className="w-full h-full"> 
 
-            <div className="w-full max-w-xs h-full bg-gray-800 flex flex-col hidden lg:flex">
+            <div className="w-full h-full bg-gray-800 flex flex-col hidden lg:flex">
                 <div className="p-4 border-b border-gray-700">
                     <h1 className="text-xl font-semibold text-white">Rooms</h1>
                     <div className="relative">
