@@ -81,28 +81,40 @@ export default function RoomPage() {
     
     return (
         <div className="h-full grid grid-rows-[auto_1fr_auto] bg-gray-900">
-            <header className="flex justify-between items-start p-4 border-b border-gray-700">
-                <div className="flex flex-col items-center gap-2 md:min-w-[40vw] md:items-start">
-                    <div className="flex justify-between items-center gap-x-2 w-full justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <p className="text-sm lg:text-xl font-bold text-white tracking-wide max-w-[20vh] md:min-w-[30vw]">
-                            {formatName(room?.name, 30) || 'Loading...'}
-                        </p>
-                        {room && <RoomInfoDropdown room={room} />}
+            <header className="flex flex-col sm:flex-row justify-between items-start gap-3 p-3 sm:p-4 border-b border-gray-700 bg-gray-900/95 backdrop-blur-sm">
+                {/* Main header content */}
+                <div className="flex items-center justify-between w-full sm:w-auto">
+                    {/* Room info section */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-wide truncate">
+                                    {formatName(room?.name, 30) || 'Loading...'}
+                                </h1>
+                                {room && (
+                                    <div className="flex-shrink-0">
+                                        <RoomInfoDropdown room={room} />
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                                {messages?.length} message{messages?.length !== 1 ? 's' : ''}
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex justify-start w-full">
-                        <h2 className="text-sm text-gray-400">{messages?.length} messages</h2>
-                    </div>
+                    
+                    {/* Hamburger menu button - visible on mobile */}
+                    <button 
+                        className="text-white hover:text-gray-400 lg:hidden ml-3 flex-shrink-0 p-1 rounded-md hover:bg-gray-800 transition-colors"
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Open menu"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
                 </div>
-                {/* hamburger menu button */}
-                <button 
-                    className="text-white text-sm cursor-pointer hover:text-gray-400 lg:hidden"
-                    onClick={() => setIsMenuOpen(true)}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                </button>
             </header>
 
             <main className="min-h-0 overflow-hidden">
