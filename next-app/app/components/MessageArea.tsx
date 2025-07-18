@@ -99,7 +99,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
                 {showScrollButton && (
                     <button
                         onClick={handleScrollToBottom}
-                        className="absolute bottom-4 right-4 z-10 bg-gray-700 hover:bg-gray-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        className="absolute bottom-4 select-none right-4 z-10 bg-gray-700 hover:bg-gray-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                         aria-label="Scroll to bottom"
                     >
                         <svg 
