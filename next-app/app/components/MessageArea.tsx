@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Message } from "../types";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { scrollToBottom } from "../lib/scroll-util";
@@ -52,6 +52,8 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
         setShowScrollButton(false);
     };
 
+    const sortedMessages = useMemo(() => messages?.sort((a, b) => Number(a.date) - Number(b.date)), [messages]);
+
     return (
         <>
             <div className="relative h-full flex flex-col">
@@ -81,7 +83,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
                         }
                     }}
                 >
-                    {messages.map((message, index) => {
+                    {sortedMessages.map((message, index) => {
                         const isCurrentUser = message.username === currentUsername;
                         return (
                             <MessageBubble
