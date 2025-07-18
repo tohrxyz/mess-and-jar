@@ -251,7 +251,7 @@ export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageI
             <div className={`group flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-center gap-2 ${!isCurrentUser ? 'flex-row-reverse' : ''}`}>
                 <button
                     onClick={() => setShowInfoMenu(!showInfoMenu)}
-                    className={`mt-1 p-1 rounded-full hover:bg-gray-600 transition-colors ${showInfoMenu ? 'bg-gray-600' : 'bg-transparent'} ${showInfoMenu || isLongPress ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-150`}
+                    className={`mt-1 p-1 rounded-full hover:bg-gray-600 transition-colors ${showInfoMenu ? 'bg-gray-600' : 'bg-transparent'} ${showInfoMenu || isLongPress ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-150 select-none`}
                     title="Message info"
                 >
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
