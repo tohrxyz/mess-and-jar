@@ -16,6 +16,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
     const isInitialRenderRef = useRef(true);
     const previousMessageCountRef = useRef(0);
     const [modalImage, setModalImage] = useState<string | null>(null);
+    const [showScrollButton, setShowScrollButton] = useState(false);
 
     // Set initial scroll position to bottom without animation
     useEffect(() => {
@@ -45,39 +46,74 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
         return () => window.removeEventListener("keydown", handler);
     }, []);
 
+    const handleScrollToBottom = () => {
+        scrollToBottom(messageAreaScrollRef);
+        isScrolledManuallyRef.current = false;
+        setShowScrollButton(false);
+    };
+
     return (
         <>
-            <div 
-                className="flex-1 overflow-y-scroll p-6 space-y-4 min-h-0 max-h-[calc(100vh-9.5rem)]" 
-                ref={messageAreaScrollRef}
-                onScroll={(e) => {
-                    if (!isScrolledManuallyRef.current) {
-                        isScrolledManuallyRef.current = true;
-                    }
-                    if (
-                        (messageAreaScrollRef.current?.scrollTop ?? 0) + 
-                        (messageAreaScrollRef.current?.clientHeight ?? 0) >= 
-                        (messageAreaScrollRef.current?.scrollHeight ?? 0) - 20
-                    ) {
-                        isTouchedBottomRef.current = true;
-                        isScrolledManuallyRef.current = false;
-                    } else if (isTouchedBottomRef.current) {
-                        isTouchedBottomRef.current = false;
-                    }
-                }}
-            >
-                {messages.map((message, index) => {
-                    const isCurrentUser = message.username === currentUsername;
-                    return (
-                        <MessageBubble
-                            key={index}
-                            message={message}
-                            isCurrentUser={isCurrentUser}
-                            onImageClick={setModalImage}
-                        />
-                    );
-                })}
+            <div className="relative flex-1 min-h-0">
+                <div 
+                    className="h-full overflow-y-scroll p-6 space-y-4 max-h-[calc(100vh-9.5rem)]" 
+                    ref={messageAreaScrollRef}
+                    onScroll={(e) => {
+                        if (!isScrolledManuallyRef.current) {
+                            isScrolledManuallyRef.current = true;
+                        }
+                        
+                        const isAtBottom = (
+                            (messageAreaScrollRef.current?.scrollTop ?? 0) + 
+                            (messageAreaScrollRef.current?.clientHeight ?? 0) >= 
+                            (messageAreaScrollRef.current?.scrollHeight ?? 0) - 20
+                        );
+
+                        if (isAtBottom) {
+                            isTouchedBottomRef.current = true;
+                            isScrolledManuallyRef.current = false;
+                            setShowScrollButton(false);
+                        } else {
+                            if (isTouchedBottomRef.current) {
+                                isTouchedBottomRef.current = false;
+                            }
+                            setShowScrollButton(true);
+                        }
+                    }}
+                >
+                    {messages.map((message, index) => {
+                        const isCurrentUser = message.username === currentUsername;
+                        return (
+                            <MessageBubble
+                                key={index}
+                                message={message}
+                                isCurrentUser={isCurrentUser}
+                                onImageClick={setModalImage}
+                            />
+                        );
+                    })}
+                </div>
+                
+                {showScrollButton && (
+                    <button
+                        onClick={handleScrollToBottom}
+                        className="absolute bottom-4 right-4 z-10 bg-gray-700 hover:bg-gray-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        aria-label="Scroll to bottom"
+                    >
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-5 w-5" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                            strokeWidth={2}
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                    </button>
+                )}
             </div>
+            
             {modalImage && (
                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setModalImage(null)}>
                     <button
