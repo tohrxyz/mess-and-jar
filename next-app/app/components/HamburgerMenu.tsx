@@ -412,8 +412,8 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                 
                 {/* Footer Actions */}
                 <div className="p-4 border-t border-gray-700">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex gap-2">
+                    <div className="flex flex-row gap-3">
+                        <div className="flex gap-2 w-full">
                             <button 
                                 className="flex-1 text-white text-sm bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded transition-colors"
                                 onClick={() => exportLocalConfig()}
