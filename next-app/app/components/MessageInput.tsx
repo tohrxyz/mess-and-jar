@@ -84,6 +84,7 @@ export default function MessageInput() {
                     type="file"
                     id="file-input"
                     className="hidden"
+                    accept="image/*"
                     onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
