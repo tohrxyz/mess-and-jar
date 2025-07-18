@@ -83,16 +83,16 @@ export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageI
                 }
 
                 try {
+                    if (!isMounted) return
                     if (image) {
                         const blob = new Blob([image.blob])
                         const url = URL.createObjectURL(blob)
-                        if (isMounted) {
-                            setImageSrc(url)
-                            setIsDecrypting(false)
-                            return
-                        }
+                        setImageSrc(url)
+                        setIsDecrypting(false)
+                        return
                     }
-                    const resp = await mutateDownloadMedia(fileId);
+
+                    const resp = await mutateDownloadMedia(fileId)
                     if (!resp.success || !resp.data) {
                         throw new Error("Download failed");
                     }
