@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900`}
       >
         {/* Prevent errors on browsers (e.g., Brave iOS) where window.ethereum is undefined */}
         <Script id="ethereum-stub" strategy="beforeInteractive">

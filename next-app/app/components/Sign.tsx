@@ -43,7 +43,7 @@ export default function Sign() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen px-4">
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-gray-900">
             <div className="w-full max-w-md min-w-sm">
                 <div className="rounded-2xl shadow-xl bg-gray-800 p-8 space-y-6">
                     <div className="text-center">
