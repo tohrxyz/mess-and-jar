@@ -371,7 +371,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         )}
                         
                         <div className="flex flex-col gap-2">
-                            <button
+                            {!isMedia && <button
                                 onClick={handleCopyMessage}
                                 disabled={copyStatus !== 'idle' || isMedia}
                                 className={`flex cursor-pointer disabled:cursor-not-allowed select-none items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
@@ -394,7 +394,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                                     </svg>
                                 )}
                                 {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
-                            </button>
+                            </button> }
 
                             {isMedia && imageSrc && (
                                 <a
