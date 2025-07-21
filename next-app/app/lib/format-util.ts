@@ -14,6 +14,5 @@ export function formatFileSize(bytes: number): string {
 export function extractIdFromImageSource(val: string) {
     const splitted = val?.split("/")
     const result = splitted?.[splitted.length - 1]
-    console.log({result})
     return result
 }

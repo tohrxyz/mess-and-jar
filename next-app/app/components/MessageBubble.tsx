@@ -10,19 +10,24 @@ interface MessageItemProps {
     message: Message;
     isCurrentUser: boolean;
     onImageClick: (src: string) => void;
+    messageIndex: number;
 }
 
-export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: MessageItemProps) => {
-    const { room } = useRoomContext();
+export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messageIndex }: MessageItemProps) => {
+    const { room, openInfoMenuId, setOpenInfoMenuId } = useRoomContext();
     const [displayText, setDisplayText] = useState<string>("");
     const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [isImagePlaceholder, setIsImagePlaceholder] = useState<boolean>(false);
-    const [showInfoMenu, setShowInfoMenu] = useState<boolean>(false);
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const [isLongPress, setIsLongPress] = useState<boolean>(false);
+    const [menuPosition, setMenuPosition] = useState<'above' | 'below'>('below');
     const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileSizeRef = useRef<string | null>(null)
+    
+    // Create unique identifier for this message
+    const messageId = `${messageIndex}-${message.date}`;
+    const showInfoMenu = openInfoMenuId === messageId;
     
     const renderMessageWithLinks = (text: string) => {
         // URL regex pattern to detect URLs
@@ -87,7 +92,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: Mes
         if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
         longPressTimeoutRef.current = setTimeout(() => {
             setIsLongPress(true);
-            setShowInfoMenu((prev) => !prev)
+            setOpenInfoMenuId(showInfoMenu ? null : messageId);
         }, 450); // ~0.45s long-press
     };
 
@@ -106,6 +111,57 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: Mes
     const bubbleRef = useRef<HTMLDivElement | null>(null);
     const notVisibleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Calculate menu position based on available space
+    useEffect(() => {
+        if (!showInfoMenu || !bubbleRef.current) return;
+
+        const updateMenuPosition = () => {
+            const bubbleRect = bubbleRef.current?.getBoundingClientRect();
+            if (!bubbleRect) return;
+
+            // Find the scrollable message area container
+            const messageArea = bubbleRef.current?.closest('.overflow-y-auto');
+            const containerRect = messageArea?.getBoundingClientRect();
+            
+            if (!containerRect) {
+                // Fallback to viewport if container not found
+                const viewportHeight = window.innerHeight;
+                const menuHeight = 200;
+                const spaceBelow = viewportHeight - bubbleRect.bottom;
+                const spaceAbove = bubbleRect.top;
+                setMenuPosition(spaceBelow >= menuHeight || spaceBelow >= spaceAbove ? 'below' : 'above');
+                return;
+            }
+
+            const menuHeight = 200; // Approximate height of the menu
+            const spaceBelow = containerRect.bottom - bubbleRect.bottom;
+            const spaceAbove = bubbleRect.top - containerRect.top;
+
+            // Position menu below if there's enough space, otherwise above
+            if (spaceBelow >= menuHeight || spaceBelow >= spaceAbove) {
+                setMenuPosition('below');
+            } else {
+                setMenuPosition('above');
+            }
+        };
+
+        updateMenuPosition();
+        
+        // Listen to scroll events on the message area container
+        const messageArea = bubbleRef.current?.closest('.overflow-y-auto');
+        if (messageArea) {
+            messageArea.addEventListener('scroll', updateMenuPosition);
+        }
+        window.addEventListener('resize', updateMenuPosition);
+
+        return () => {
+            if (messageArea) {
+                messageArea.removeEventListener('scroll', updateMenuPosition);
+            }
+            window.removeEventListener('resize', updateMenuPosition);
+        };
+    }, [showInfoMenu]);
+
     useEffect(() => {
         if (!showInfoMenu) return;
 
@@ -123,7 +179,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: Mes
                 // Out of view → start 10 s timer to auto-close
                 if (!notVisibleTimerRef.current) {
                     notVisibleTimerRef.current = setTimeout(() => {
-                        setShowInfoMenu(false);
+                        setOpenInfoMenuId(null);
                     }, 10000);
                 }
             }
@@ -247,10 +303,10 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: Mes
     const isMedia = Boolean(imageSrc) || isImagePlaceholder;
 
     return (
-        <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+        <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} relative`}>
             <div className={`group flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-center gap-2 ${!isCurrentUser ? 'flex-row-reverse' : ''}`}>
                 <button
-                    onClick={() => setShowInfoMenu(!showInfoMenu)}
+                    onClick={() => setOpenInfoMenuId(showInfoMenu ? null : messageId)}
                     className={`mt-1 p-1 rounded-full hover:bg-gray-600 transition-colors ${showInfoMenu ? 'bg-gray-600' : 'bg-transparent'} ${showInfoMenu || isLongPress ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-150 select-none`}
                     title="Message info"
                 >
@@ -296,7 +352,9 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: Mes
             </div>
 
             {showInfoMenu && (
-                <div className={`mt-2 p-3 bg-gray-800 rounded-lg border border-gray-600 shadow-lg ${isCurrentUser ? 'self-end' : 'self-start'} min-w-48`}>
+                <div className={`absolute z-50 p-3 bg-gray-800 rounded-lg border border-gray-600 shadow-lg min-w-48 ${
+                    menuPosition === 'above' ? 'bottom-full mb-2' : 'top-full mt-2'
+                } ${isCurrentUser ? 'right-0' : 'left-0'}`}>
                     <div className="space-y-3">
                         <div className="text-xs text-gray-300 select-none">
                             <span className="font-bold">Sent</span> {formatDate(message.date)}

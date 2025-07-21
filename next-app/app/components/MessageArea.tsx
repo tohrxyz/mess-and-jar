@@ -95,6 +95,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
                                 message={message}
                                 isCurrentUser={isCurrentUser}
                                 onImageClick={handleSetModalImageCallback}
+                                messageIndex={index}
                             />
                         );
                     })}

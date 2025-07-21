@@ -14,6 +14,8 @@ export const RoomContext = createContext<{
     previousRoomIdRef: RefObject<string | null>;
     lastTimestampRef: RefObject<number>;
     messageAreaScrollRef: RefObject<HTMLDivElement | null>;
+    openInfoMenuId: string | null;
+    setOpenInfoMenuId: (id: string | null) => void;
 }>({
     user: null,
     setUser: () => {},
@@ -26,6 +28,8 @@ export const RoomContext = createContext<{
     previousRoomIdRef: { current: null },
     lastTimestampRef: { current: 0 },
     messageAreaScrollRef: { current: null },
+    openInfoMenuId: null,
+    setOpenInfoMenuId: () => {},
 }); 
 
 export const useRoomContext = () => {
@@ -41,12 +45,13 @@ export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
     const [inputMessage, setInputMessage] = useState<string>("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [room, setRoom] = useState<Room | null>(null);
+    const [openInfoMenuId, setOpenInfoMenuId] = useState<string | null>(null);
     const previousRoomIdRef = useRef<string | null>(null);
     const lastTimestampRef = useRef<number>(0);
     const messageAreaScrollRef = useRef<HTMLDivElement>(null);
 
     return (
-        <RoomContext.Provider value={{ user, setUser, inputMessage, setInputMessage, messages, setMessages, room, setRoom, previousRoomIdRef, lastTimestampRef, messageAreaScrollRef }}>
+        <RoomContext.Provider value={{ user, setUser, inputMessage, setInputMessage, messages, setMessages, room, setRoom, previousRoomIdRef, lastTimestampRef, messageAreaScrollRef, openInfoMenuId, setOpenInfoMenuId }}>
             {children}
         </RoomContext.Provider>
     )
