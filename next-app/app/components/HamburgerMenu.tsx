@@ -7,6 +7,8 @@ import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
 import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
 import { roomOperation } from "../mutations/room";
+import { User } from "../types/user";
+import { getUserFromStorage } from "../lib/get-user-util";
 
 interface HamburgerMenuProps {
     isOpen: boolean;
@@ -28,12 +30,22 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
     });
     const [rooms, setRooms] = useState<Room[]>([]);
     const selectedRoomRef = useRef<HTMLDivElement>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [copiedUsername, setCopiedUsername] = useState(false);
+    const [copiedPassword, setCopiedPassword] = useState(false);
 
     useEffect(() => {
         const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
         if (rooms) {
             setRooms(JSON.parse(rooms));
         }
+    }, []);
+
+    useEffect(() => {
+        const userData = getUserFromStorage();
+        setUser(userData);
     }, []);
 
     // Auto-scroll to selected room when menu opens or rooms/room_id changes
@@ -188,6 +200,23 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         onClose();
         router.push(`/chat/${roomId}`);
     }
+
+    const toggleProfileDropdown = () => {
+        setIsProfileDropdownOpen((prev) => !prev);
+    };
+
+    const handleCopy = (text: string, type: "username" | "password") => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+        }
+        if (type === "username") {
+            setCopiedUsername(true);
+            setTimeout(() => setCopiedUsername(false), 2000);
+        } else {
+            setCopiedPassword(true);
+            setTimeout(() => setCopiedPassword(false), 2000);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -410,8 +439,102 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                     </div>
                 </div>
                 
-                {/* Footer Actions */}
                 <div className="p-4 border-t border-gray-700">
+                    {user && (
+                        <div className="relative mb-4">
+                            <button
+                                onClick={toggleProfileDropdown}
+                                className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                    {user.username.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-white font-medium truncate flex-1 text-left">{user.username}</span>
+                                <svg
+                                    className={`w-4 h-4 text-gray-300 transition-transform ${isProfileDropdownOpen ? "rotate-180" : "rotate-0"}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {isProfileDropdownOpen && (
+                                <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800/95 backdrop-blur-md border border-gray-600/50 rounded-2xl p-5 z-20 shadow-2xl animate-in slide-in-from-bottom-2 duration-200">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wide">Username</label>
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={user.username}
+                                                    className="w-full px-3 py-2 bg-gray-700/80 border border-gray-600 rounded-lg text-white text-sm font-mono cursor-not-allowed"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleCopy(user.username, "username")}
+                                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
+                                            >
+                                                {copiedUsername ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 relative">
+                                                <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wide">Password</label>
+                                                <input
+                                                    type={showPassword ? "text" : "password"}
+                                                    readOnly
+                                                    value={user.password}
+                                                    className="w-full px-3 py-2 bg-gray-700/80 border border-gray-600 rounded-lg text-white text-sm font-mono cursor-not-allowed pr-10"
+                                                />
+                                                <button
+                                                    onClick={() => setShowPassword((prev) => !prev)}
+                                                    className="absolute inset-y-0 right-2 top-[26px] flex items-center text-gray-400 hover:text-gray-200"
+                                                >
+                                                    {showPassword ? (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 1-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 016 0Z" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <button
+                                                onClick={() => handleCopy(user.password, "password")}
+                                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
+                                            >
+                                                {copiedPassword ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex flex-row gap-3">
                         <div className="flex gap-2 w-full">
                             <button 
