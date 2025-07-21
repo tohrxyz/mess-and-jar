@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { Message } from "../types";
 import { decryptBinaryClient, decryptStringClient } from "../lib/crypto-client";
@@ -12,7 +12,7 @@ interface MessageItemProps {
     onImageClick: (src: string) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageItemProps) {
+export const MessageBubble = memo(({ message, isCurrentUser, onImageClick }: MessageItemProps) => {
     const { room } = useRoomContext();
     const [displayText, setDisplayText] = useState<string>("");
     const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
@@ -367,4 +367,4 @@ export function MessageBubble({ message, isCurrentUser, onImageClick }: MessageI
             )}
         </div>
     );
-}
+})

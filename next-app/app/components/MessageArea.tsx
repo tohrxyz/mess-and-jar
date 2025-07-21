@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Message } from "../types";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { scrollToBottom } from "../lib/scroll-util";
@@ -52,6 +52,10 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
         setShowScrollButton(false);
     };
 
+    const handleSetModalImageCallback = useCallback((image: string | null) => {
+        setModalImage(image)
+    }, [])
+
     const sortedMessages = useMemo(() => messages?.sort((a, b) => Number(a.date) - Number(b.date)), [messages]);
 
     return (
@@ -90,7 +94,7 @@ export default function MessageArea({ messages, currentUsername }: MessageAreaPr
                                 key={index}
                                 message={message}
                                 isCurrentUser={isCurrentUser}
-                                onImageClick={setModalImage}
+                                onImageClick={handleSetModalImageCallback}
                             />
                         );
                     })}
