@@ -1,13 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"server/lib"
 	"server/lib/media"
 	"server/lib/room"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -61,6 +64,69 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Write([]byte(http.StatusText(200)))
+}
+
+func editMessage(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Editing message")
+
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := req.FormValue("timestamp")
+	roomID := req.FormValue("room")
+	editedContent := req.FormValue("edited_content")
+
+	if timestampStr == "" || roomID == "" {
+		http.Error(w, "timestamp and room are required", http.StatusBadRequest)
+		return
+	}
+
+	targetTimestamp := parseDate(timestampStr)
+
+	historyStr, err := lib.ReadHistoryFromFile(roomID)
+	if err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] editMessage: Can't read history for room:", roomID, "- error:", err)
+		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
+		return
+	}
+
+	lines := strings.Split(historyStr, "\n")
+	var updatedLines []string
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		var msg lib.Message
+		if err := json.Unmarshal([]byte(line), &msg); err != nil {
+			updatedLines = append(updatedLines, line)
+			continue
+		}
+
+		if msg.Date == targetTimestamp {
+			msg.Msg = editedContent
+			bytes, _ := json.Marshal(msg)
+			line = string(bytes)
+		}
+
+		updatedLines = append(updatedLines, line)
+	}
+
+	updatedHistory := strings.Join(updatedLines, "\n")
+	if len(updatedHistory) > 0 && updatedHistory[len(updatedHistory)-1] != '\n' {
+		updatedHistory += "\n"
+	}
+
+	filepath := lib.FilepathFromRoom(roomID)
+	if err := os.WriteFile(filepath, []byte(updatedHistory), 0644); err != nil {
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] editMessage: Can't write updated history for room:", roomID, "- error:", err)
+		http.Error(w, "Can't save updated history", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
 func query_messages(w http.ResponseWriter, req *http.Request) {
@@ -296,6 +362,7 @@ func main() {
 	http.Handle("/room", corsOptions[0](http.HandlerFunc(roomEndpoint)))
 	http.Handle("/upload_media", corsOptions[0](http.HandlerFunc(uploadMedia)))
 	http.Handle("/download_media", corsOptions[0](http.HandlerFunc(downloadMedia)))
+	http.Handle("/edit_message", corsOptions[0](http.HandlerFunc(editMessage)))
 
 	http.ListenAndServe(":8090", nil)
 }
