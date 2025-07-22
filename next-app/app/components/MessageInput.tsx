@@ -7,7 +7,7 @@ import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
 import { v4 as uuid } from "uuid";
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
-import { saveMessage } from "../indexdb/chat-db";
+import { deleteMessage, getLastTimestamp, saveMessage } from "../indexdb/chat-db";
 
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
@@ -19,21 +19,29 @@ export default function MessageInput() {
         const userObj = JSON.parse(user ?? "{}") as { username: string };
         const date = Date.now().toString();
         const encryptedMessage = encryptStringClient(msg, room?.password ?? "");
+        
+        // optimistically save
+        saveMessage({
+            id: `${date}-${userObj.username}-${room?.id ?? "general"}`,
+            date,
+            room: room?.id ?? "general",
+            username: userObj.username,
+            msg: encryptedMessage,
+        });
+        lastTimestampRef.current = Number(date);
+
         const response = await mutateSendMessage(room?.id ?? "general", userObj.username, encryptedMessage, date);
+        
         if (response.success) {
             setInputMessage("");
             await queryClient.invalidateQueries({ queryKey: ["messages", room?.id, lastTimestampRef.current] });
-            saveMessage({
-                id: `${date}-${userObj.username}-${room?.id ?? "general"}`,
-                date,
-                room: room?.id ?? "general",
-                username: userObj.username,
-                msg: msg,
-            });
-            lastTimestampRef.current = Number(date);
             scrollToBottom(messageAreaScrollRef);
             return null;
         } else {
+            // rollback
+            await deleteMessage(`${date}-${userObj.username}-${room?.id ?? "general"}`);
+            const latestTimestamp = await getLastTimestamp(room?.id ?? "general");
+            lastTimestampRef.current = latestTimestamp;
             return new Error("Failed to send message");
         }
     }
