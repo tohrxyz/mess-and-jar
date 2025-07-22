@@ -7,11 +7,12 @@ import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
 import { v4 as uuid } from "uuid";
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
+import { saveMessage } from "../indexdb/chat-db";
 
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const { inputMessage, setInputMessage, room, user, setMessages, lastTimestampRef, messageAreaScrollRef } = useRoomContext();
+    const { inputMessage, setInputMessage, room, user, lastTimestampRef, messageAreaScrollRef } = useRoomContext();
     const queryClient = useQueryClient();
 
     const handleSendMessage = async (msg: string): Promise<null | Error> => {
@@ -22,13 +23,13 @@ export default function MessageInput() {
         if (response.success) {
             setInputMessage("");
             await queryClient.invalidateQueries({ queryKey: ["messages", room?.id, lastTimestampRef.current] });
-            setMessages(prev => [...prev, {
+            saveMessage({
+                id: `${date}-${userObj.username}-${room?.id ?? "general"}`,
                 date,
                 room: room?.id ?? "general",
                 username: userObj.username,
                 msg: msg,
-                isSentFromClient: true,
-            }]);
+            });
             lastTimestampRef.current = Number(date);
             scrollToBottom(messageAreaScrollRef);
             return null;

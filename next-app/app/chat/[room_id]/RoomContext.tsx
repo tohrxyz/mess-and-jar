@@ -1,18 +1,16 @@
 "use client";
 import { createContext, RefObject, SetStateAction, useContext, useRef, useState } from "react";
-import { Message, Room } from "../../types";
+import { Room } from "../../types";
 
 export const RoomContext = createContext<{
     user: string | null;
     setUser: (user: SetStateAction<string | null>) => void;
     inputMessage: string;
     setInputMessage: (message: SetStateAction<string>) => void;
-    messages: Message[];
-    setMessages: (messages: SetStateAction<Message[]>) => void;
     room: Room | null;
     setRoom: (room: SetStateAction<Room | null>) => void;
     previousRoomIdRef: RefObject<string | null>;
-    lastTimestampRef: RefObject<number>;
+    lastTimestampRef: RefObject<number | null>;
     messageAreaScrollRef: RefObject<HTMLDivElement | null>;
     openInfoMenuId: string | null;
     setOpenInfoMenuId: (id: string | null) => void;
@@ -21,12 +19,10 @@ export const RoomContext = createContext<{
     setUser: () => {},
     inputMessage: "",
     setInputMessage: () => {},
-    messages: [],
-    setMessages: () => {},
     room: null,
     setRoom: () => {},
     previousRoomIdRef: { current: null },
-    lastTimestampRef: { current: 0 },
+    lastTimestampRef: { current: null },
     messageAreaScrollRef: { current: null },
     openInfoMenuId: null,
     setOpenInfoMenuId: () => {},
@@ -43,15 +39,14 @@ export const useRoomContext = () => {
 export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<string | null>(null);
     const [inputMessage, setInputMessage] = useState<string>("");
-    const [messages, setMessages] = useState<Message[]>([]);
     const [room, setRoom] = useState<Room | null>(null);
     const [openInfoMenuId, setOpenInfoMenuId] = useState<string | null>(null);
     const previousRoomIdRef = useRef<string | null>(null);
-    const lastTimestampRef = useRef<number>(0);
+    const lastTimestampRef = useRef<number | null>(null);
     const messageAreaScrollRef = useRef<HTMLDivElement>(null);
 
     return (
-        <RoomContext.Provider value={{ user, setUser, inputMessage, setInputMessage, messages, setMessages, room, setRoom, previousRoomIdRef, lastTimestampRef, messageAreaScrollRef, openInfoMenuId, setOpenInfoMenuId }}>
+        <RoomContext.Provider value={{ user, setUser, inputMessage, setInputMessage, room, setRoom, previousRoomIdRef, lastTimestampRef, messageAreaScrollRef, openInfoMenuId, setOpenInfoMenuId }}>
             {children}
         </RoomContext.Provider>
     )
