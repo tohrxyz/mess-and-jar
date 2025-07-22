@@ -46,9 +46,9 @@ export default function MessageInput() {
     const { inputMessage, setInputMessage, room, user, lastTimestampRef, messageAreaScrollRef } = useRoomContext();
     const queryClient = useQueryClient();
 
-    const handleSendMessage = async (msg: string): Promise<null | Error> => {
+    const handleSendMessage = async (msg: string, forcedDate?: string): Promise<null | Error> => {
         const userObj = JSON.parse(user ?? "{}") as { username: string };
-        const date = Date.now().toString();
+        const date = forcedDate ?? Date.now().toString();
         const encryptedMessage = encryptStringClient(msg, room?.password ?? "");
         
         // optimistically save
@@ -107,9 +107,10 @@ export default function MessageInput() {
 
             const msgInjected = `<<<$#!${newFileId}!#$>>>`
             if (res.success) {
-                await saveImage({ id: newFileId, timestamp: Date.now(), blob: new Blob([loadedFile])})
+                const date = Date.now()
+                await saveImage({ id: newFileId, timestamp: date, blob: new Blob([loadedFile])})
                 await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
-                await handleSendMessage(msgInjected)
+                await handleSendMessage(msgInjected, date.toString())
             } else {
                 throw new Error("Failed to upload media")
             }

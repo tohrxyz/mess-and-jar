@@ -58,7 +58,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
+        const date = new Date(Number(dateString));
         return date.toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
