@@ -30,7 +30,7 @@ export default function RoomPage() {
         setRoom, 
     } = useRoomContext();
 
-    const { data: queriedMessages, isLoading } = useMessages(room_id as string, lastTimestampRef.current);
+    const { data: queriedMessages, isLoading, failureCount } = useMessages(room_id as string, lastTimestampRef.current);
 
     
     useEffect(() => {
@@ -74,7 +74,7 @@ export default function RoomPage() {
     
     return (
         <div className="h-full grid grid-rows-[auto_1fr_auto] bg-gray-900">
-            <ChatHeader room={room} messageCount={messages.length} />
+            <ChatHeader room={room} messageCount={messages.length} failureCount={failureCount} />
 
             <main className="min-h-0 overflow-hidden">
                 <MessageArea
