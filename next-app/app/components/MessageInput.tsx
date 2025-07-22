@@ -9,6 +9,37 @@ import { v4 as uuid } from "uuid";
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { deleteMessage, getLastTimestamp, saveMessage } from "../indexdb/chat-db";
 
+const ProgressBar = ({ isUploading, error }: { isUploading: boolean, error: null | Error }) => {
+    if (isUploading) {
+        return (
+            <div className="absolute bottom-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-2">
+                <div className="flex items-center space-x-2 text-sm">
+                    <div className="size-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-gray-400">Uploading media...</span>
+                </div>
+                <div className="mt-1 w-full bg-gray-700 rounded-full h-1">
+                    <div className="bg-blue-500 h-1 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className="absolute bottom-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-2">
+                <div className="flex items-center space-x-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3 text-red-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <span className="text-red-400">{error.message}</span>
+                </div>
+            </div>
+        );
+    }
+    
+    return null;
+}
+
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -94,30 +125,7 @@ export default function MessageInput() {
 
     return (
         <div className="bg-gray-800 border-t border-gray-700 relative">
-            {(isUploading || error) && (
-                <div className="absolute bottom-full left-0 right-0 bg-gray-800 border-b border-gray-700 px-4 py-2">
-                    <div className="flex items-center space-x-2 text-sm">
-                        {isUploading ? (
-                            <>
-                                <div className="size-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-gray-400">Uploading media...</span>
-                            </>
-                        ) : error ? (
-                            <>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3 text-red-400">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                                </svg>
-                                <span className="text-red-400">{error.message}</span>
-                            </>
-                        ) : null}
-                    </div>
-                    {isUploading && (
-                        <div className="mt-1 w-full bg-gray-700 rounded-full h-1">
-                            <div className="bg-blue-500 h-1 rounded-full animate-pulse" style={{ width: '100%' }}></div>
-                        </div>
-                    )}
-                </div>
-            )}
+            <ProgressBar isUploading={isUploading} error={error} />
             
             <div className="flex space-x-2 py-2 pl-2 pr-2">
                 <input
