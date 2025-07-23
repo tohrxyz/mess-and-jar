@@ -15,8 +15,7 @@ interface MessageItemProps {
 
 export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messageIndex }: MessageItemProps) => {
     const { room, openInfoMenuId, setOpenInfoMenuId } = useRoomContext();
-    const [displayText, setDisplayText] = useState<string>("");
-    const [isDecrypting, setIsDecrypting] = useState<boolean>(true);
+    const [displayText, setDisplayText] = useState<string>(message.msg.startsWith("<<<$#!") ? "" : message.msg);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [isImagePlaceholder, setIsImagePlaceholder] = useState<boolean>(false);
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
@@ -50,11 +49,6 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
             }
             return part;
         });
-    };
-
-    const generateGlitchText = (length: number) => {
-        const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?`~';
-        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     };
 
     const formatDate = (dateString: string) => {
@@ -198,46 +192,27 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
 
     useEffect(() => {
         let isMounted = true;
-        let glitchInterval: NodeJS.Timeout | null = null;
-
         const processMessage = async () => {
-            if (!room?.password || !message.msg) {
-                if (isMounted) {
-                    setDisplayText(message.msg || "Unable to decrypt message");
-                    setIsDecrypting(false);
-                }
-                return;
-            }
-
-            // Try to decrypt the message (text placeholder)
-            const decryptedMessage = message.isSentFromClient ? message.msg : decryptStringClient(message.msg, room.password);
-
-            if (!decryptedMessage) {
-                if (isMounted) {
-                    setDisplayText("Unable to decrypt message");
-                    setIsDecrypting(false);
-                }
-                return;
-            }
-
             // Check if the decrypted message is a media placeholder
             const mediaPrefix = "<<<$#!";
             const mediaSuffix = "!#$>>>";
-            if (decryptedMessage.startsWith(mediaPrefix) && decryptedMessage.endsWith(mediaSuffix)) {
-                const fileId = decryptedMessage.slice(mediaPrefix.length, decryptedMessage.length - mediaSuffix.length); 
-                const image = await getImage(fileId)
+            if (message.msg.startsWith(mediaPrefix) && message.msg.endsWith(mediaSuffix)) {
+                const fileId = message.msg.slice(mediaPrefix.length, message.msg.length - mediaSuffix.length); 
+                
+                // Always show placeholder first for media messages
                 if (isMounted) {
                     setIsImagePlaceholder(true);
                 }
-
+                
                 try {
-                    if (!isMounted) return
+                    if (!isMounted) return;
+
+                    const image = await getImage(fileId)
                     if (image) {
                         const blob = new Blob([image.blob])
                         fileSizeRef.current = formatFileSize(blob.size)
                         const url = URL.createObjectURL(blob)
                         setImageSrc(url)
-                        setIsDecrypting(false)
                         return
                     }
 
@@ -250,7 +225,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     const encryptedString = new TextDecoder().decode(new Uint8Array(resp.data)).trim();
 
                     // Decrypt binary
-                    const decryptedBinary = decryptBinaryClient(encryptedString, room.password);
+                    const decryptedBinary = decryptBinaryClient(encryptedString, room?.password ?? "");
                     if (!decryptedBinary) {
                         throw new Error("Decrypt failed");
                     }
@@ -263,39 +238,26 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         await saveImage({ id: fileId, timestamp: Date.now(), blob})
                         await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
                         setImageSrc(url);
-                        setIsDecrypting(false);
                     }
                 } catch (error) {
                     if (isMounted) {
                         setDisplayText("Unable to load media: " + error);
-                        setIsDecrypting(false);
                         setIsImagePlaceholder(false);
                     }
                 }
                 return;
             }
 
-            // Not a media placeholder -> do glitch animation then display text
-            let glitchCount = 0;
-            const maxGlitches = 8;
-            glitchInterval = setInterval(() => {
-                if (!isMounted) return;
-                if (glitchCount < maxGlitches) {
-                    setDisplayText(generateGlitchText(decryptedMessage.length));
-                    glitchCount++;
-                } else {
-                    setDisplayText(decryptedMessage);
-                    setIsDecrypting(false);
-                    if (glitchInterval) clearInterval(glitchInterval);
-                }
-            }, 50);
+            // Not a media placeholder -> display text immediately
+            if (isMounted) {
+                setDisplayText(message.msg);
+            }
         };
 
         processMessage();
 
         return () => {
             isMounted = false;
-            if (glitchInterval) clearInterval(glitchInterval);
             if (imageSrc && imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
         };
     }, [message.msg, room?.password]);
@@ -346,7 +308,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     ) : isImagePlaceholder ? (
                         <div className="w-full aspect-[2/3] bg-gray-600 animate-pulse rounded min-w-64 select-none" />
                     ) : (
-                        <div className={`select-none ${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all ${isDecrypting ? 'animate-pulse' : ''}`}>{displayText !== "" ? (isDecrypting ? displayText : renderMessageWithLinks(displayText)) : "Unable to decrypt message"}</div>
+                        <div className={`select-none ${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all`}>{displayText !== "" ? renderMessageWithLinks(displayText) : (message.msg.startsWith("<<<$#!") ? "Loading media..." : "Unable to decrypt message")}</div>
                      )}
                 </div>
             </div>

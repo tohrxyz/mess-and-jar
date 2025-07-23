@@ -4,13 +4,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useRoomContext } from "./RoomContext";
 import { LOCAL_STORAGE_KEYS } from "@/app/constants/localStorageKeys";
 import { getFromStorage } from "@/app/lib/localStorage";
-import { useEffect } from "react";
-import { Message, Room } from "@/app/types";
+import { useEffect, useMemo } from "react";
+import { Room } from "@/app/types";
 import MessageArea from "@/app/components/MessageArea";
 import MessageInput from "@/app/components/MessageInput";
 import { useMessages } from "@/app/queries/messages";
 import ChatHeader from "@/app/components/ChatHeader";
 import { getLastTimestamp, saveMessages, useMessagesLocal } from "@/app/indexdb/chat-db";
+import { decryptStringClient } from "@/app/lib/crypto-client";
 
 export default function RoomPage() {
     const router = useRouter();
@@ -27,14 +28,18 @@ export default function RoomPage() {
     } = useRoomContext();
 
     const messagesLocal = useMessagesLocal(room_id as string);
-    //TODO: consider memoizing
-    const messages: Message[] = messagesLocal?.map(m => ({
-        date: m.date,
-        username: m.username,
-        msg: m.msg,
-        room: m.room,
-        isSentFromClient: false,
-    })) ?? [];
+    const messages = useMemo(() => {
+        return messagesLocal?.map(m => {
+            return {
+                date: m.date,
+                username: m.username,
+                msg: decryptStringClient(m.msg, room?.password ?? "") ?? "Unable to decrypt message",
+                room: m.room,
+                isSentFromClient: false,
+            }
+        }) ?? [];
+    }, [messagesLocal, room?.password])
+
 
     useEffect(() => {
         if (messagesLocal) {
