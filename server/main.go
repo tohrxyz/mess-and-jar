@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -88,24 +89,47 @@ func query_messages(w http.ResponseWriter, req *http.Request) {
 	room := req.URL.Query().Get("room")
 
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Querying messages for room: ", room)
-	messages, err := db.GetMessagesAfterTimestamp(room, parseDate(timestamp))
-	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't read history for room:", room, "- error:", err)
-		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
-		return
-	}
-	messagesOrEmptyArray := messages
-	if messagesOrEmptyArray == nil {
-		messagesOrEmptyArray = []lib.Message{}
-	}
-	stringifiedMessages, err := lib.ToJson(messagesOrEmptyArray)
-	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't serialize messages for room:", room, "- error:", err)
-		http.Error(w, "Can't serialize messages", http.StatusInternalServerError)
-		return
-	}
 
-	w.Write([]byte(stringifiedMessages))
+	ctx, cancel := context.WithTimeout(req.Context(), 30*time.Second)
+	defer cancel()
+
+	targetTimestamp := parseDate(timestamp)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			messagesOrEmptyArray := []lib.Message{}
+			stringifiedMessages, err := lib.ToJson(messagesOrEmptyArray)
+			if err != nil {
+				fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't serialize empty messages for room:", room, "- error:", err)
+				http.Error(w, "Can't serialize messages", http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte(stringifiedMessages))
+			return
+
+		case <-ticker.C:
+			messages, err := db.GetMessagesAfterTimestamp(room, targetTimestamp)
+			if err != nil {
+				fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't read history for room:", room, "- error:", err)
+				http.Error(w, "Can't read the room history", http.StatusInternalServerError)
+				return
+			}
+
+			if len(messages) > 0 {
+				stringifiedMessages, err := lib.ToJson(messages)
+				if err != nil {
+					fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't serialize messages for room:", room, "- error:", err)
+					http.Error(w, "Can't serialize messages", http.StatusInternalServerError)
+					return
+				}
+				w.Write([]byte(stringifiedMessages))
+				return
+			}
+		}
+	}
 }
 
 func auth(w http.ResponseWriter, req *http.Request) {
@@ -337,5 +361,11 @@ func main() {
 	http.Handle("/download_media", corsOptions[0](http.HandlerFunc(downloadMedia)))
 	http.Handle("/edit_message", corsOptions[0](http.HandlerFunc(editMessage)))
 
-	http.ListenAndServe(":8090", nil)
+	server := &http.Server{
+		Addr:         ":8090",
+		ReadTimeout:  40 * time.Second,
+		WriteTimeout: 40 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	server.ListenAndServe()
 }
