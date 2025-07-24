@@ -18,7 +18,7 @@ export const useMessages = (roomId: string, timestamp: number | null) => {
         queryKey: ["messages", roomId, timestamp],
         queryFn: () => getMessages(roomId, timestamp),
         enabled: Boolean(roomId && timestamp !== null),
-        refetchInterval: 5000,
+        refetchInterval: 31000,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
         refetchOnReconnect: false,
