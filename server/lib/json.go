@@ -68,3 +68,11 @@ func GetChatHistoryAfterTimestamp(data string, timestamp int64) (string, error) 
 func HistoryToJson(history string) string {
 	return "[" + history + "]"
 }
+
+func ToJson[T any](val T) (string, error) {
+	jsonBytes, err := json.Marshal(val)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
+}
