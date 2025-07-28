@@ -21,7 +21,8 @@ export const useMessages = (roomId: string, timestamp: number | null) => {
         refetchInterval: 31000,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
-        refetchOnReconnect: false,
+        refetchOnReconnect: true,
         retry: 3,
+        staleTime: 32000,
     })
 }
