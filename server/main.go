@@ -1,24 +1,21 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
+	"server/db"
 	"server/lib"
 	"server/lib/media"
-	"server/lib/room"
 	"strconv"
-	"strings"
 	"time"
 )
 
 func parseDate(date_str string) int64 {
 	num, err := strconv.ParseInt(date_str, 10, 64)
 	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] Failed to parse date:", date_str, "- error:", err)
-		return int64(time.Now().Second())
+		return 0
 	}
 	return num
 }
@@ -37,7 +34,7 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 		Msg:      req.FormValue("msg"),
 	}
 
-	user, err := lib.GetUser(message.Username)
+	user, err := db.GetUser(message.Username)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't get user:", message.Username, "- error:", err)
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -49,14 +46,7 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	stringifiedMessage, err := lib.MessageToJson(message)
-	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't stringify message for user:", message.Username, "room:", message.Room, "- error:", err)
-		http.Error(w, "Can't process your message", http.StatusInternalServerError)
-		return
-	}
-
-	err = lib.WriteStringifiedJsonToFileAppend(stringifiedMessage, message.Room)
+	err = db.WriteMessage(message)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't save message for user:", message.Username, "room:", message.Room, "- error:", err)
 		http.Error(w, "Can't save your message", http.StatusInternalServerError)
@@ -84,48 +74,13 @@ func editMessage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	targetTimestamp := parseDate(timestampStr)
-
-	historyStr, err := lib.ReadHistoryFromFile(roomID)
+	err := db.UpdateMessage(roomID, targetTimestamp, editedContent)
 	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] editMessage: Can't read history for room:", roomID, "- error:", err)
-		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
+		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] editMessage: Can't update message for room:", roomID, " and timestamp:", targetTimestamp, "- error:", err)
+		http.Error(w, "Can't update message", http.StatusInternalServerError)
 		return
 	}
 
-	lines := strings.Split(historyStr, "\n")
-	var updatedLines []string
-
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-
-		var msg lib.Message
-		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			updatedLines = append(updatedLines, line)
-			continue
-		}
-
-		if msg.Date == targetTimestamp {
-			msg.Msg = editedContent
-			bytes, _ := json.Marshal(msg)
-			line = string(bytes)
-		}
-
-		updatedLines = append(updatedLines, line)
-	}
-
-	updatedHistory := strings.Join(updatedLines, "\n")
-	if len(updatedHistory) > 0 && updatedHistory[len(updatedHistory)-1] != '\n' {
-		updatedHistory += "\n"
-	}
-
-	filepath := lib.FilepathFromRoom(roomID)
-	if err := os.WriteFile(filepath, []byte(updatedHistory), 0644); err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] editMessage: Can't write updated history for room:", roomID, "- error:", err)
-		http.Error(w, "Can't save updated history", http.StatusInternalServerError)
-		return
-	}
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
@@ -134,22 +89,47 @@ func query_messages(w http.ResponseWriter, req *http.Request) {
 	room := req.URL.Query().Get("room")
 
 	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[API] Querying messages for room: ", room)
-	history, err := lib.ReadHistoryFromFile(room)
-	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't read history for room:", room, "- error:", err)
-		http.Error(w, "Can't read the room history", http.StatusInternalServerError)
-		return
-	}
 
-	filteredHistory, err := lib.GetChatHistoryAfterTimestamp(history, parseDate(timestamp))
-	if err != nil {
-		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't filter history for room:", room, "timestamp:", timestamp, "- error:", err)
-		http.Error(w, "Can't filter the room history", http.StatusInternalServerError)
-		return
-	}
-	toJson := lib.HistoryToJson(filteredHistory)
+	ctx, cancel := context.WithTimeout(req.Context(), 30*time.Second)
+	defer cancel()
 
-	w.Write([]byte(toJson))
+	targetTimestamp := parseDate(timestamp)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			messagesOrEmptyArray := []lib.Message{}
+			stringifiedMessages, err := lib.ToJson(messagesOrEmptyArray)
+			if err != nil {
+				fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't serialize empty messages for room:", room, "- error:", err)
+				http.Error(w, "Can't serialize messages", http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte(stringifiedMessages))
+			return
+
+		case <-ticker.C:
+			messages, err := db.GetMessagesAfterTimestamp(room, targetTimestamp)
+			if err != nil {
+				fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't read history for room:", room, "- error:", err)
+				http.Error(w, "Can't read the room history", http.StatusInternalServerError)
+				return
+			}
+
+			if len(messages) > 0 {
+				stringifiedMessages, err := lib.ToJson(messages)
+				if err != nil {
+					fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] query_messages: Can't serialize messages for room:", room, "- error:", err)
+					http.Error(w, "Can't serialize messages", http.StatusInternalServerError)
+					return
+				}
+				w.Write([]byte(stringifiedMessages))
+				return
+			}
+		}
+	}
 }
 
 func auth(w http.ResponseWriter, req *http.Request) {
@@ -172,7 +152,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, err := lib.GetUser(username)
+	user, err := db.GetUser(username)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't get user:", username, "- error:", err)
 		http.Error(w, "Can't get user", http.StatusInternalServerError)
@@ -180,7 +160,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if user.Username == "" {
-		err = lib.CreateUser(username, password)
+		err = db.CreateUser(username, password)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't create user:", username, "- error:", err)
 			http.Error(w, "Can't create user", http.StatusInternalServerError)
@@ -225,7 +205,7 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Must specify room id, name and password", http.StatusBadRequest)
 			return
 		}
-		err := room.CreateRoom(roomData)
+		err := db.CreateRoom(roomData.Id, roomData.Name, roomData.Password)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot create room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot create room: "+err.Error(), http.StatusInternalServerError)
@@ -241,7 +221,20 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		err := room.EditRoom(roomData)
+		requestedRoom, err := db.GetRoom(roomData.Id)
+		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot get room:", roomData.Id, "- error:", err)
+			http.Error(w, "Cannot get room: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if requestedRoom.Password != roomData.Password {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Unauthorized to edit room:", roomData.Id)
+			http.Error(w, "Unauthorized: incorrect room password", http.StatusUnauthorized)
+			return
+		}
+
+		err = db.UpdateRoom(roomData.Name, roomData.Id)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot edit room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot edit room: "+err.Error(), http.StatusInternalServerError)
@@ -257,14 +250,14 @@ func roomEndpoint(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		roomDataLoaded, err := room.GetRoom(roomData.Id)
+		roomDataLoaded, err := db.GetRoom(roomData.Id)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot get room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot get room: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		serializedRoom, err := room.SerializeRoom(roomDataLoaded)
+		serializedRoom, err := lib.ToJson(roomDataLoaded)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot serialize room data for room:", roomData.Id, "- error:", err)
 			http.Error(w, "Cannot serialize room data: "+err.Error(), http.StatusInternalServerError)
@@ -339,7 +332,11 @@ func downloadMedia(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(binaryData))
 }
 
+const DB_PATH = "./db/mess-and-jar.db"
+
 func main() {
+	db.Init()
+	defer db.Close()
 	corsOptions := []func(h http.Handler) http.Handler{
 		func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -364,5 +361,11 @@ func main() {
 	http.Handle("/download_media", corsOptions[0](http.HandlerFunc(downloadMedia)))
 	http.Handle("/edit_message", corsOptions[0](http.HandlerFunc(editMessage)))
 
-	http.ListenAndServe(":8090", nil)
+	server := &http.Server{
+		Addr:         ":8090",
+		ReadTimeout:  40 * time.Second,
+		WriteTimeout: 40 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	server.ListenAndServe()
 }

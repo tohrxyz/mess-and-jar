@@ -1,0 +1,81 @@
+package db
+
+import (
+	"database/sql"
+	"log"
+
+	_ "github.com/glebarez/go-sqlite"
+)
+
+var DB *sql.DB
+
+const DATABASE_PATH = "./db/mess-and-jar.db"
+
+func Init() {
+	var err error
+	DB, err = sql.Open("sqlite", DATABASE_PATH)
+	if err != nil {
+		log.Fatal("Failed to open database: ", err)
+	}
+
+	if err = DB.Ping(); err != nil {
+		log.Fatal("Failed to connect to database: ", err)
+	}
+
+	DB.SetMaxOpenConns(1)
+
+	if _, err = DB.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		log.Fatal("Failed to enable foreign keys: ", err)
+	}
+
+	if _, err = DB.Exec("PRAGMA journal_mode = WAL"); err != nil {
+		log.Fatal("Failed to set WAL mode: ", err)
+	}
+
+	createSchema()
+	log.Println("Database initialized successfully")
+}
+
+func createSchema() {
+	schema := `
+	CREATE TABLE IF NOT EXISTS users (
+		username TEXT PRIMARY KEY,
+		password TEXT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS rooms (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		password TEXT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS messages (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp INTEGER NOT NULL,
+		room_id TEXT NOT NULL,
+		username TEXT NOT NULL,
+		msg TEXT NOT NULL,
+		FOREIGN KEY(room_id) REFERENCES rooms(id),
+		FOREIGN KEY(username) REFERENCES users(username)
+	);
+
+	CREATE TABLE IF NOT EXISTS media (
+		id TEXT PRIMARY KEY,
+		data BLOB NOT NULL
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_messages_room_date ON messages(room_id, timestamp);
+	CREATE INDEX IF NOT EXISTS idx_messages_date ON messages(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_messages_username ON messages(username);
+	`
+
+	if _, err := DB.Exec(schema); err != nil {
+		log.Fatal("Failed to create schema: ", err)
+	}
+}
+
+func Close() {
+	if DB != nil {
+		DB.Close()
+	}
+}

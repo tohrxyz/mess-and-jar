@@ -1,1 +1,6 @@
-db/*
+db/**/*.json
+db/*.db
+db/*.db-shm
+db/*.db-wal
+db/media/*
+db/**/.DS_Store
