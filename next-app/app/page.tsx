@@ -23,7 +23,7 @@ export default function Home() {
             saveToStorage(LOCAL_STORAGE_KEYS.BACKUP_WAS_DB_MIGRATED_JSON_SQLITE_V1, currentStoredRooms)
             clearStorage(LOCAL_STORAGE_KEYS.ROOMS)
             saveToStorage(LOCAL_STORAGE_KEYS.WAS_DB_MIGRATED_JSON_SQLITE_V1, "true")
-            window.location.reload()
+            window.location.replace('/')
         }
     }, [])
 
