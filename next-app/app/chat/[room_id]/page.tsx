@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useRoomContext } from "./RoomContext";
 import { LOCAL_STORAGE_KEYS } from "@/app/constants/localStorageKeys";
-import { getFromStorage } from "@/app/lib/localStorage";
+import { clearStorage, getFromStorage, saveToStorage } from "@/app/lib/localStorage";
 import { useEffect, useMemo } from "react";
 import { Room } from "@/app/types";
 import MessageArea from "@/app/components/MessageArea";
@@ -58,6 +58,17 @@ export default function RoomPage() {
             setUser(userData);
         }
     }, [router]);
+
+    useEffect(() => {
+        const wasNukedDueToMigration: string | null = getFromStorage(LOCAL_STORAGE_KEYS.WAS_DB_MIGRATED_JSON_SQLITE_V1)
+        if (wasNukedDueToMigration === null) {
+            const currentStoredRooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS)
+            saveToStorage(LOCAL_STORAGE_KEYS.BACKUP_WAS_DB_MIGRATED_JSON_SQLITE_V1, currentStoredRooms)
+            clearStorage(LOCAL_STORAGE_KEYS.ROOMS)
+            saveToStorage(LOCAL_STORAGE_KEYS.WAS_DB_MIGRATED_JSON_SQLITE_V1, "true")
+            window.location.reload()
+        }
+    }, [])
     
     useEffect(() => {
         const doFn = async () => {
