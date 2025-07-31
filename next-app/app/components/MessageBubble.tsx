@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, memo } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { Message } from "../types";
-import { decryptBinaryClient, decryptStringClient } from "../lib/crypto-client";
+import { cryptoKeyFromRawExport, decryptSubtleClient, hexToArrayBuffer } from "../lib/crypto-client";
 import { mutateDownloadMedia } from "../mutations/message";
-import { deleteOld, getImage, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage, useImage } from "../indexdb/media-db";
+import { deleteOld, getImage, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { extractIdFromImageSource, formatFileSize } from "../lib/format-util";
 
 interface MessageItemProps {
@@ -221,11 +221,12 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         throw new Error("Download failed");
                     }
 
-                    // Convert ArrayBuffer -> string (encrypted binary)
-                    const encryptedString = new TextDecoder().decode(new Uint8Array(resp.data)).trim();
+                    const [ivHex, _] = fileId.split("_")
+                    const iv = new Uint8Array(hexToArrayBuffer(ivHex))
+                    const key = await cryptoKeyFromRawExport(room?.password ?? "")
 
-                    // Decrypt binary
-                    const decryptedBinary = decryptBinaryClient(encryptedString, room?.password ?? "");
+                    const decryptedBinary = await decryptSubtleClient(resp.data, { key, iv })
+
                     if (!decryptedBinary) {
                         throw new Error("Decrypt failed");
                     }
