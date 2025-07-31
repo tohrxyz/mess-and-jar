@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from "react";
 import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
 import { roomOperation } from "../mutations/room";
-import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
+import { arrayBufferToHex, cryptoKeyFromRawExport, decryptSubtleClient, encryptSubtleClient, generateKeySubtleClient, getNewIV, hashSubtleClientHex, hexToArrayBuffer } from "../lib/crypto-client";
 import { User } from "../types/user";
 import { getUserFromStorage } from "../lib/get-user-util";
 
@@ -61,17 +61,19 @@ export default function Sidebar() {
         router.push("/auth");
     }
 
-    const toggleDropdown = (type: 'create' | 'join') => {
+    const toggleDropdown = async (type: 'create' | 'join') => {
         if (activeDropdown === type) {
             setActiveDropdown(null);
         } else {
             setActiveDropdown(type);
             if (type === 'create') {
                 // Reset create form and generate new UUID when opening
+                const { rawKey } = await generateKeySubtleClient()
+                const rawKeyAsHex = arrayBufferToHex(rawKey)
                 setCreateFormData({
                     name: "",
                     id: uuidv4(),
-                    password: ""
+                    password: rawKeyAsHex
                 });
             } else {
                 // Reset join form when opening
@@ -107,14 +109,22 @@ export default function Sidebar() {
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify([...rooms, room]));
         setCreateFormData({
             name: "",
-            id: uuidv4(),
+            id: "",
             password: ""
         });
-        const encryptedRoomName = encryptStringClient(room.name, room.password)
+
+        const key = await cryptoKeyFromRawExport(room.password)
+        const { raw: iv, hex: ivHex } = getNewIV()
+        const [encryptedRoomName, roomPasswordHashed] = await Promise.all([
+            encryptSubtleClient(room.name, { key, iv }).then(encrypted => arrayBufferToHex(encrypted)),
+            hashSubtleClientHex(room.password)
+        ])
+
+        const encryptedNameWithIv = `${ivHex}_${encryptedRoomName}`
         await roomOperation({ 
             id: room.id, 
-            name: encryptedRoomName, 
-            password: getHashClient(room.password), 
+            name: encryptedNameWithIv, 
+            password: roomPasswordHashed, 
             method: RoomBackendMethod.RoomCreate
         })
         setActiveDropdown(null);
@@ -138,10 +148,17 @@ export default function Sidebar() {
             id: joinFormData.id,
             method: RoomBackendMethod.RoomGet
         }) as RoomGetResponse
-        const decryptedName = decryptStringClient(roomResponse?.room?.name ?? "", joinFormData.password)
+        
+        const key = await cryptoKeyFromRawExport(joinFormData.password)
+        const _roomEncrypted = roomResponse.room.name?.split("_")
+        const iv = new Uint8Array(hexToArrayBuffer(_roomEncrypted[0]))
+        const encName = _roomEncrypted[1]
+
+        const decryptedRoomNameBuffer = await decryptSubtleClient(encName, { iv, key })
+        const decryptedRoomName = new TextDecoder().decode(decryptedRoomNameBuffer)
         const room: Room = {
             id: joinFormData.id,
-            name: decryptedName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
+            name: decryptedRoomName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
             password: joinFormData.password
         }
 
@@ -268,12 +285,13 @@ export default function Sidebar() {
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wide">Password</label>
-                                        <input
-                                            type="password"
+                                        <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wide">Secure 256bit Key</label>
+                                        <textarea
                                             value={createFormData.password}
-                                            onChange={(e) => handleCreateInputChange("password", e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                            // onChange={(e) => handleCreateInputChange("password", e.target.value)}
+                                            readOnly
+                                            disabled
+                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 cursor-not-allowed rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 resize-none min-h-[40px]"
                                             placeholder="Secure your room"
                                         />
                                     </div>

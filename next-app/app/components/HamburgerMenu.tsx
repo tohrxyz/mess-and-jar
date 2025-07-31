@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
-import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
+import { arrayBufferToHex, cryptoKeyFromRawExport, decryptSubtleClient, encryptSubtleClient, generateKeySubtleClient, getNewIV, hashSubtleClientHex, hexToArrayBuffer } from "../lib/crypto-client";
 import { roomOperation } from "../mutations/room";
 import { User } from "../types/user";
 import { getUserFromStorage } from "../lib/get-user-util";
@@ -86,17 +86,19 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         router.push("/auth");
     }
 
-    const toggleDropdown = (type: 'create' | 'join') => {
+    const toggleDropdown = async (type: 'create' | 'join') => {
         if (activeDropdown === type) {
             setActiveDropdown(null);
         } else {
             setActiveDropdown(type);
             if (type === 'create') {
+                const { rawKey } = await generateKeySubtleClient()
+                const hex = arrayBufferToHex(rawKey)
                 // Reset create form and generate new UUID when opening
                 setCreateFormData({
                     name: "",
                     id: uuidv4(),
-                    password: ""
+                    password: hex,
                 });
             } else {
                 // Reset join form when opening
@@ -132,14 +134,23 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify([...rooms, room]));
         setCreateFormData({
             name: "",
-            id: uuidv4(),
+            id: "",
             password: ""
         });
-        const encryptedRoomName = encryptStringClient(room.name, room.password)
+
+        const { raw: iv, hex: ivHex } = getNewIV() 
+        const key = await cryptoKeyFromRawExport(room.password)
+
+        const [hashedRoomPassword, encryptedRoomName] = await Promise.all([
+            hashSubtleClientHex(room.password),
+            encryptSubtleClient(room.name, { iv, key }).then(encrypted => arrayBufferToHex(encrypted))
+        ])
+
+        const transitNameWithIv = `${ivHex}_${encryptedRoomName}`
         await roomOperation({ 
             id: room.id, 
-            name: encryptedRoomName, 
-            password: getHashClient(room.password), 
+            name: transitNameWithIv, 
+            password: hashedRoomPassword, 
             method: RoomBackendMethod.RoomCreate
         })
         setActiveDropdown(null);
@@ -161,7 +172,14 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             id: joinFormData.id,
             method: RoomBackendMethod.RoomGet
         }) as RoomGetResponse
-        const decryptedName = decryptStringClient(roomResponse?.room?.name ?? "", joinFormData.password)
+
+        const key = await cryptoKeyFromRawExport(joinFormData.password)
+        const transitName = roomResponse.room.name?.split("_")
+        const iv = new Uint8Array(hexToArrayBuffer(transitName[0]))
+        const encName = transitName[1]
+        const decryptedBuffer = await decryptSubtleClient(encName, { key, iv })
+        const decryptedName = new TextDecoder().decode(decryptedBuffer)
+
         const room: Room = {
             id: joinFormData.id,
             name: decryptedName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
@@ -320,12 +338,11 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                                     
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wide">Password</label>
-                                        <input
-                                            type="password"
+                                        <textarea
                                             value={createFormData.password}
-                                            onChange={(e) => handleCreateInputChange("password", e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 cursor-not-allowed rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                                             placeholder="Secure your room"
+                                            readOnly
                                         />
                                     </div>
                                     
