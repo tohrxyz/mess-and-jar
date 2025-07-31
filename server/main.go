@@ -293,7 +293,7 @@ func uploadMedia(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = media.SaveMediaToFile(string(data), fileID)
+	err = media.SaveMediaToFile(data, fileID)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] uploadMedia: Cannot save the file for ID:", fileID, "- error:", err)
 		http.Error(w, "Cannot save the file", http.StatusBadRequest)
@@ -329,7 +329,7 @@ func downloadMedia(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(binaryData)))
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(binaryData))
+	w.Write(binaryData)
 }
 
 const DB_PATH = "./db/mess-and-jar.db"
