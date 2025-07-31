@@ -4,14 +4,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useRoomContext } from "./RoomContext";
 import { LOCAL_STORAGE_KEYS } from "@/app/constants/localStorageKeys";
 import { clearStorage, getFromStorage, saveToStorage } from "@/app/lib/localStorage";
-import { useEffect, useMemo } from "react";
-import { Room } from "@/app/types";
+import { useEffect, useState } from "react";
+import { Message, Room } from "@/app/types";
 import MessageArea from "@/app/components/MessageArea";
 import MessageInput from "@/app/components/MessageInput";
 import { useMessages } from "@/app/queries/messages";
 import ChatHeader from "@/app/components/ChatHeader";
 import { getLastTimestamp, saveMessages, useMessagesLocal } from "@/app/indexdb/chat-db";
-import { decryptStringClient } from "@/app/lib/crypto-client";
+import { cryptoKeyFromRawExport, decryptSubtleClient, hexToArrayBuffer } from "@/app/lib/crypto-client";
 
 export default function RoomPage() {
     const router = useRouter();
@@ -28,16 +28,43 @@ export default function RoomPage() {
     } = useRoomContext();
 
     const messagesLocal = useMessagesLocal(room_id as string);
-    const messages = useMemo(() => {
-        return messagesLocal?.map(m => {
-            return {
-                date: m.date,
-                username: m.username,
-                msg: decryptStringClient(m.msg, room?.password ?? "") ?? "Unable to decrypt message",
-                room: m.room,
-                isSentFromClient: false,
+    const [messages, setMessages] = useState<Message[]>([])
+
+    useEffect(() => {
+        const doFn = async () => {
+            if (!messagesLocal || !room?.password) return;
+            
+            const key = await cryptoKeyFromRawExport(room.password);
+            const textDecoder = new TextDecoder()
+            const decryptedMessages: Message[] = [];
+            const batchSize = 20;
+            
+            for (let i = 0; i < messagesLocal.length; i += batchSize) {
+                const batch = messagesLocal.slice(i, i + batchSize);
+                const batchResults = await Promise.all(batch.map(async (v) => {
+                    try {
+                        const [ivHex, encMsg] = v.msg.split("_")
+                        const iv = new Uint8Array(hexToArrayBuffer(ivHex))
+                        const decryptedMessageContent = await decryptSubtleClient(encMsg, { key, iv })
+                        const decoded = textDecoder.decode(decryptedMessageContent)
+                        return {
+                            ...v,
+                            msg: decoded,
+                            isSentFromClient: false,
+                        } as Message;
+                    } catch (error) {
+                        return {
+                            ...v,
+                            msg: "Unable to decrypt message",
+                            isSentFromClient: false,
+                        } as Message;
+                    }
+                }));
+                decryptedMessages.push(...batchResults);
             }
-        }) ?? [];
+            setMessages(decryptedMessages);
+        }
+        doFn();
     }, [messagesLocal, room?.password])
 
 
