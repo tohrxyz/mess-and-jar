@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { mutateSendMessage, mutateUploadMedia } from "../mutations/message";
-import { encryptBinaryClient, encryptStringClient } from "../lib/crypto-client";
+import { arrayBufferToHex, cryptoKeyFromRawExport, encryptSubtleClient, getNewIV } from "../lib/crypto-client";
 import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
 import { v4 as uuid } from "uuid";
@@ -49,7 +49,13 @@ export default function MessageInput() {
     const handleSendMessage = async (msg: string, forcedDate?: string): Promise<null | Error> => {
         const userObj = JSON.parse(user ?? "{}") as { username: string };
         const date = forcedDate ?? Date.now().toString();
-        const encryptedMessage = encryptStringClient(msg, room?.password ?? "");
+
+        const key = await cryptoKeyFromRawExport(room?.password ?? "")
+        const { raw: iv, hex: ivHex } = getNewIV()
+
+        const encryptedContent = await encryptSubtleClient(msg, { key, iv })
+        const encryptedContentHex = arrayBufferToHex(encryptedContent)
+        const encryptedMessageTransit = `${ivHex}_${encryptedContentHex}`
         
         // optimistically save
         saveMessage({
@@ -57,11 +63,11 @@ export default function MessageInput() {
             date,
             room: room?.id ?? "general",
             username: userObj.username,
-            msg: encryptedMessage,
+            msg: encryptedMessageTransit,
         });
         lastTimestampRef.current = Number(date);
 
-        const response = await mutateSendMessage(room?.id ?? "general", userObj.username, encryptedMessage, date);
+        const response = await mutateSendMessage(room?.id ?? "general", userObj.username, encryptedMessageTransit, date);
         
         if (response.success) {
             setInputMessage("");
@@ -99,10 +105,15 @@ export default function MessageInput() {
         try {
             if (!room || !room?.password) throw new Error(`Can't access room [${room?.id}] password.`)
             const loadedFile = await file.arrayBuffer()
-            const encryptedBinary = encryptBinaryClient(loadedFile, room?.password)
+
+            const key = await cryptoKeyFromRawExport(room.password)
+            const { raw: iv, hex: ivHex } = getNewIV()
+
+            const encryptedBinary = await encryptSubtleClient(loadedFile, { key, iv })
+
             if (!encryptedBinary) throw new Error(`Can't encrypt the media`)
 
-            const newFileId = uuid()
+            const newFileId = `${ivHex}_${uuid()}`
             const res = await mutateUploadMedia(encryptedBinary, newFileId)
 
             const msgInjected = `<<<$#!${newFileId}!#$>>>`

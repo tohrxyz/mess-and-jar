@@ -39,7 +39,7 @@ export type UploadMediaResponse = {
 }
 
 export const mutateUploadMedia = async (
-    binaryData: string,
+    binaryData: ArrayBuffer,
     file_id: string
 ): Promise<UploadMediaResponse> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
