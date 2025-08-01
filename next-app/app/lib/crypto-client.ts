@@ -5,12 +5,13 @@ export const getHashClient = (input: string) => {
 }
 
 enum CiphertextAlgorithm {
-    Message = "AES-GCM"
+    Message = "AES-GCM",
+    Identity = 'Ed25519'
 }
 
 export async function generateKeySubtleClient() {
     const key =  await crypto.subtle.generateKey(
-        { name: 'AES-GCM', length: 256 },
+        { name: CiphertextAlgorithm.Message, length: 256 },
         true,
         ['encrypt', 'decrypt']
     )
@@ -21,6 +22,51 @@ export async function generateKeySubtleClient() {
         key,
         rawKey: exportedKey
     }
+}
+
+export async function generateNewIdentityKeyPair() {
+    return await crypto.subtle.generateKey(
+        { name: CiphertextAlgorithm.Identity },
+        true, //consider non-extractable & saving to indexdb as opaque key (prevents xss etc..)
+        ['sign', 'verify']
+    )
+}
+
+type Hex = string
+
+export async function getKeyPairToHex(keyPair: CryptoKeyPair) {
+    const privKey = keyPair.privateKey
+    const pubKey = keyPair.publicKey
+
+    const [privKeyHex, pubKeyHex] = await Promise.all([
+        crypto.subtle.exportKey('pkcs8', privKey).then(raw => arrayBufferToHex(raw)),
+        crypto.subtle.exportKey('spki', pubKey).then(raw => arrayBufferToHex(raw)),
+    ])
+    return {
+        privateKeyHex: privKeyHex as Hex,
+        publicKeyHex: pubKeyHex as Hex
+    }
+}
+
+/*
+    wrapper around generateNewIdentityKeyPair() and getKeyPairToHex()
+*/
+export async function getNewIdentityAsHex() {
+    return (await getKeyPairToHex((await generateNewIdentityKeyPair())))
+}
+
+export async function getIdentityKeyPairFromHex({ privateKeyHex, publicKeyHex }: { privateKeyHex: Hex, publicKeyHex: Hex }) {
+    const privKeyAsBuffer = hexToArrayBuffer(privateKeyHex)
+    const pubKeyAsBuffer = hexToArrayBuffer(publicKeyHex)
+    const [privKey, pubKey] = await Promise.all([
+        crypto.subtle.importKey('pkcs8', privKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['sign']),
+        crypto.subtle.importKey('spki', pubKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['verify'])
+    ])
+
+    return {
+        privateKey: privKey,
+        publicKey: pubKey
+    } as CryptoKeyPair
 }
 
 export async function cryptoKeyFromRawExport(rawKeyHex: string) {
