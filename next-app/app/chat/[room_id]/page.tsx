@@ -11,7 +11,7 @@ import MessageInput from "@/app/components/MessageInput";
 import { useMessages } from "@/app/queries/messages";
 import ChatHeader from "@/app/components/ChatHeader";
 import { getLastTimestamp, saveMessages, useMessagesLocal } from "@/app/indexdb/chat-db";
-import { cryptoKeyFromRawExport, decryptSubtleClient, hexToArrayBuffer } from "@/app/lib/crypto-client";
+import { cryptoKeyFromRawExport, decryptSubtleClient, hexToArrayBuffer, prepareBufferFromMessage, verifyMessageAgainstPubkeyHex } from "@/app/lib/crypto-client";
 
 export default function RoomPage() {
     const router = useRouter();
@@ -47,12 +47,25 @@ export default function RoomPage() {
                         const iv = new Uint8Array(hexToArrayBuffer(ivHex))
                         const decryptedMessageContent = await decryptSubtleClient(encMsg, { key, iv })
                         const decoded = textDecoder.decode(decryptedMessageContent)
+                        const preparedMessageBuffToSign = await prepareBufferFromMessage({
+                            date: v.date.toString(),
+                            room: v.room,
+                            username: v.username,
+                            msg: decoded
+                        })
+                        const isValidSig = await verifyMessageAgainstPubkeyHex({ 
+                            messageBuffer: preparedMessageBuffToSign,
+                            publicKeyHex: v.identity_pubkey ?? "",
+                            signature: v.signature ?? ""
+                        })
                         return {
                             ...v,
                             msg: decoded,
                             isSentFromClient: false,
+                            isSignatureValid: isValidSig
                         } as Message;
                     } catch (error) {
+                        console.error(error)
                         return {
                             ...v,
                             msg: "Unable to decrypt message",
@@ -131,6 +144,8 @@ export default function RoomPage() {
                     room: m.room,
                     username: m.username,
                     msg: m.msg,
+                    identity_pubkey: (m as any)['identity_pubkey'],
+                    signature: m.signature
                 })));
                 lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date);
             }
