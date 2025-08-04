@@ -291,10 +291,27 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     ref={bubbleRef}
                 >
                     {!isCurrentUser && (
-                        <div className="text-xs font-medium mb-1 opacity-75 select-none">
-                            {message.username}
+                        <div className="text-xs font-medium mb-1 opacity-75 select-none flex items-center gap-1">
+                            <span className={`${!message.isSignatureValid && 'text-red-400'}`}>{message.username}</span>
+                            {message.isSignatureValid === true && (
+                                <svg className="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                            {message.isSignatureValid === false && (
+                                <div className="relative group">
+                                    <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded border border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50">
+                                        Signature doesn't match identity
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
+
+                    
                     {imageSrc ? (
                         <div className="relative w-full max-h-96 min-w-64 cursor-zoom-in" onClick={() => imageSrc && onImageClick(imageSrc)}>
                             <img 
