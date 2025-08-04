@@ -2,12 +2,13 @@
 import { useState } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { mutateSendMessage, mutateUploadMedia } from "../mutations/message";
-import { arrayBufferToHex, cryptoKeyFromRawExport, encryptSubtleClient, getNewIV } from "../lib/crypto-client";
+import { arrayBufferToHex, cryptoKeyFromRawExport, encryptSubtleClient, getNewIV, prepareBufferFromMessage, signMessage } from "../lib/crypto-client";
 import { scrollToBottom } from "../lib/scroll-util";
 import { useQueryClient } from "@tanstack/react-query";
 import { v4 as uuid } from "uuid";
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { deleteMessage, getLastTimestamp, saveMessage } from "../indexdb/chat-db";
+import { User } from "../types";
 
 const ProgressBar = ({ isUploading, error }: { isUploading: boolean, error: null | Error }) => {
     if (isUploading) {
@@ -47,7 +48,7 @@ export default function MessageInput() {
     const queryClient = useQueryClient();
 
     const handleSendMessage = async (msg: string, forcedDate?: string): Promise<null | Error> => {
-        const userObj = JSON.parse(user ?? "{}") as { username: string };
+        const userObj = JSON.parse(user ?? "{}") as User;
         const date = forcedDate ?? Date.now().toString();
 
         const key = await cryptoKeyFromRawExport(room?.password ?? "")
@@ -56,6 +57,14 @@ export default function MessageInput() {
         const encryptedContent = await encryptSubtleClient(msg, { key, iv })
         const encryptedContentHex = arrayBufferToHex(encryptedContent)
         const encryptedMessageTransit = `${ivHex}_${encryptedContentHex}`
+
+        const preparedMessageBuffToSign = await prepareBufferFromMessage({
+            date,
+            room: room?.id ?? "general",
+            username: userObj.username,
+            msg,
+        })
+        const signature = await signMessage({ messageBuffer: preparedMessageBuffToSign, privateKeyHex: userObj.identityKeypairHex.privateKeyHex })        
         
         // optimistically save
         saveMessage({
@@ -64,10 +73,17 @@ export default function MessageInput() {
             room: room?.id ?? "general",
             username: userObj.username,
             msg: encryptedMessageTransit,
+            signature: signature.signatureHex
         });
         lastTimestampRef.current = Number(date);
 
-        const response = await mutateSendMessage(room?.id ?? "general", userObj.username, encryptedMessageTransit, date);
+        const response = await mutateSendMessage(
+            room?.id ?? "general", 
+            userObj.username, 
+            encryptedMessageTransit, 
+            date,
+            signature.signatureHex
+        );
         
         if (response.success) {
             setInputMessage("");
