@@ -7,6 +7,8 @@ export interface ChatMessage {
     room: string;
     username: string;
     msg: string;
+    signature?: string;
+    identity_pubkey?: string;
 }
 
 export const CHAT_DB_KEY = "chat-db"
@@ -18,6 +20,15 @@ class ChatDB extends Dexie {
         super(CHAT_DB_KEY)
         this.version(1).stores({
             messages: "++id, date, room"
+        })
+        this.version(2).stores({
+            messages: "++id, date, room, identity_pubkey, signature"
+        })
+        this.version(3).stores({
+            messages: "++id, date, room, signature"
+        })
+        this.version(4).stores({
+            messages: "++id, date, room, identity_pubkey, signature"
         })
     }
 }
