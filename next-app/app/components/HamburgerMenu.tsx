@@ -35,6 +35,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [copiedUsername, setCopiedUsername] = useState(false);
     const [copiedPassword, setCopiedPassword] = useState(false);
+    const [copiedPublicKey, setCopiedPublicKey] = useState(false);
 
     useEffect(() => {
         const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
@@ -223,16 +224,19 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         setIsProfileDropdownOpen((prev) => !prev);
     };
 
-    const handleCopy = (text: string, type: "username" | "password") => {
+    const handleCopy = (text: string, type: "username" | "password" | "publicKey") => {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(text);
         }
         if (type === "username") {
             setCopiedUsername(true);
             setTimeout(() => setCopiedUsername(false), 2000);
-        } else {
+        } else if (type === "password") {
             setCopiedPassword(true);
             setTimeout(() => setCopiedPassword(false), 2000);
+        } else {
+            setCopiedPublicKey(true);
+            setTimeout(() => setCopiedPublicKey(false), 2000);
         }
     };
 
@@ -495,6 +499,32 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                                                 className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
                                             >
                                                 {copiedUsername ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wide">Public Key</label>
+                                                <textarea
+                                                    readOnly
+                                                    value={user.identityKeypairHex.publicKeyHex}
+                                                    className="w-full px-3 py-2 bg-gray-700/80 border border-gray-600 rounded-lg text-white text-xs font-mono cursor-not-allowed resize-none"
+                                                    rows={3}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleCopy(user.identityKeypairHex.publicKeyHex, "publicKey")}
+                                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
+                                            >
+                                                {copiedPublicKey ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                                                     </svg>
