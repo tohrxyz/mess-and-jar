@@ -28,10 +28,11 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 	}
 
 	message := lib.Message{
-		Date:     parseDate(req.FormValue("date")),
-		Room:     req.FormValue("room"),
-		Username: req.FormValue("username"),
-		Msg:      req.FormValue("msg"),
+		Date:      parseDate(req.FormValue("date")),
+		Room:      req.FormValue("room"),
+		Username:  req.FormValue("username"),
+		Msg:       req.FormValue("msg"),
+		Signature: req.FormValue("signature"),
 	}
 
 	user, err := db.GetUser(message.Username)
@@ -46,6 +47,7 @@ func send_message(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	message.IdentityPubkey = user.IdentityPubkey // server assigns the newest identity key from db, based on username
 	err = db.WriteMessage(message)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] send_message: Can't save message for user:", message.Username, "room:", message.Room, "- error:", err)
@@ -141,6 +143,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 
 	username := req.FormValue("username")
 	password := req.FormValue("password")
+	identityPubkey := req.FormValue("identity_pubkey")
 
 	if username == "" {
 		http.Error(w, "Username is required", http.StatusBadRequest)
@@ -152,6 +155,11 @@ func auth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if identityPubkey == "" {
+		http.Error(w, "Identity Pubkey is required", http.StatusBadRequest)
+		return
+	}
+
 	user, err := db.GetUser(username)
 	if err != nil {
 		fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't get user:", username, "- error:", err)
@@ -160,7 +168,7 @@ func auth(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if user.Username == "" {
-		err = db.CreateUser(username, password)
+		err = db.CreateUser(username, password, identityPubkey)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't create user:", username, "- error:", err)
 			http.Error(w, "Can't create user", http.StatusInternalServerError)
@@ -169,6 +177,14 @@ func auth(w http.ResponseWriter, req *http.Request) {
 
 		w.Write([]byte(http.StatusText(http.StatusCreated)))
 		return
+	} else if user.IdentityPubkey != identityPubkey && (user.Username != "" && password == user.Password) {
+		err := db.EditUser(username, password, identityPubkey)
+		if err != nil {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] auth: Can't update identity key for user:", username, "-error:", err)
+			http.Error(w, "Can't update identity key", http.StatusInternalServerError)
+			return
+		}
+		fmt.Println("[LOG]: auth: Updated identity key for user:", username, "to: ", identityPubkey)
 	} else {
 		if user.Password != password {
 			http.Error(w, "Wrong password", http.StatusUnauthorized)

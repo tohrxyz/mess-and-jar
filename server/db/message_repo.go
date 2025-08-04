@@ -1,18 +1,21 @@
 package db
 
-import "server/lib"
+import (
+	"database/sql"
+	"server/lib"
+)
 
 func WriteMessage(message lib.Message) error {
 	_, err := DB.Exec(
-		"INSERT INTO messages (timestamp, room_id, username, msg) VALUES (?, ?, ?, ?)",
-		message.Date, message.Room, message.Username, message.Msg,
+		"INSERT INTO messages (timestamp, room_id, username, msg, identity_pubkey, signature) VALUES (?, ?, ?, ?, ?, ?)",
+		message.Date, message.Room, message.Username, message.Msg, message.IdentityPubkey, message.Signature,
 	)
 	return err
 }
 
 func GetMessagesAfterTimestamp(room string, timestamp int64) ([]lib.Message, error) {
 	rows, err := DB.Query(
-		"SELECT timestamp, room_id, username, msg FROM messages WHERE room_id = ? AND timestamp > ? ORDER BY timestamp",
+		"SELECT timestamp, room_id, username, msg, identity_pubkey, signature FROM messages WHERE room_id = ? AND timestamp > ? ORDER BY timestamp",
 		room, timestamp,
 	)
 	if err != nil {
@@ -23,9 +26,21 @@ func GetMessagesAfterTimestamp(room string, timestamp int64) ([]lib.Message, err
 	var messages []lib.Message
 	for rows.Next() {
 		var msg lib.Message
-		err := rows.Scan(&msg.Date, &msg.Room, &msg.Username, &msg.Msg)
+		var identityPubkey sql.NullString
+		var signature sql.NullString
+		err := rows.Scan(&msg.Date, &msg.Room, &msg.Username, &msg.Msg, &identityPubkey, &signature)
 		if err != nil {
 			return nil, err
+		}
+		if identityPubkey.Valid {
+			msg.IdentityPubkey = identityPubkey.String
+		} else {
+			msg.IdentityPubkey = ""
+		}
+		if signature.Valid {
+			msg.Signature = signature.String
+		} else {
+			msg.Signature = ""
 		}
 		messages = append(messages, msg)
 	}
