@@ -69,6 +69,58 @@ export async function getIdentityKeyPairFromHex({ privateKeyHex, publicKeyHex }:
     } as CryptoKeyPair
 }
 
+export async function signMessage({ messageBuffer, privateKeyHex }: { messageBuffer: ArrayBuffer, privateKeyHex: Hex }) {
+    const privKeyAsBuffer = hexToArrayBuffer(privateKeyHex)
+    const privKey = await crypto.subtle.importKey('pkcs8', privKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['sign'])
+
+    const signature =  await crypto.subtle.sign(CiphertextAlgorithm.Identity, privKey, messageBuffer) 
+    const sigAsHex = arrayBufferToHex(signature)
+    return {
+        signatureRaw: signature,
+        signatureHex: sigAsHex
+    }
+}
+
+export async function verifyMessageAgainstPubkeyHex({ messageBuffer, signature, publicKeyHex }: { messageBuffer: ArrayBuffer, signature: string,  publicKeyHex: Hex }) {
+    if (!signature || !publicKeyHex) return false
+    const pubKeyAsBuffer = hexToArrayBuffer(publicKeyHex);
+    const pubkey = await crypto.subtle.importKey("spki", pubKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['verify'])
+    const sigAsBuffer = hexToArrayBuffer(signature)
+    return await crypto.subtle.verify(CiphertextAlgorithm.Identity, pubkey, sigAsBuffer, messageBuffer)
+}
+
+export const prepareBufferFromMessage = async (
+    { date, room, username, msg}: {
+        date: string,
+        room: string,
+        username: string,
+        msg: string
+    }
+) => {
+    const sortedKeys = ['date', 'room', 'username', 'msg'];
+    const orderedObj: Record<string, string> = {};
+    
+    sortedKeys.forEach(key => {
+        switch(key) {
+            case 'date':
+                orderedObj[key] = date;
+                break;
+            case 'room':
+                orderedObj[key] = room;
+                break;
+            case 'username':
+                orderedObj[key] = username;
+                break;
+            case 'msg':
+                orderedObj[key] = msg;
+                break;
+        }
+    });
+    
+    const blob = new Blob([JSON.stringify(orderedObj)]);
+    return await blob.arrayBuffer();
+}
+
 export async function cryptoKeyFromRawExport(rawKeyHex: string) {
     const arrBuff = hexToArrayBuffer(rawKeyHex)
     return await crypto.subtle.importKey('raw', arrBuff, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
