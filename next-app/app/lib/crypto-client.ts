@@ -82,11 +82,17 @@ export async function signMessage({ messageBuffer, privateKeyHex }: { messageBuf
 }
 
 export async function verifyMessageAgainstPubkeyHex({ messageBuffer, signature, publicKeyHex }: { messageBuffer: ArrayBuffer, signature: string,  publicKeyHex: Hex }) {
-    if (!signature || !publicKeyHex) return false
-    const pubKeyAsBuffer = hexToArrayBuffer(publicKeyHex);
-    const pubkey = await crypto.subtle.importKey("spki", pubKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['verify'])
-    const sigAsBuffer = hexToArrayBuffer(signature)
-    return await crypto.subtle.verify(CiphertextAlgorithm.Identity, pubkey, sigAsBuffer, messageBuffer)
+    if (!signature || !publicKeyHex || signature === "" || publicKeyHex === "") return false
+    
+    try {
+        const pubKeyAsBuffer = hexToArrayBuffer(publicKeyHex);
+        const pubkey = await crypto.subtle.importKey("spki", pubKeyAsBuffer, CiphertextAlgorithm.Identity, true, ['verify'])
+        const sigAsBuffer = hexToArrayBuffer(signature)
+        return await crypto.subtle.verify(CiphertextAlgorithm.Identity, pubkey, sigAsBuffer, messageBuffer)
+    } catch(e) {
+        console.error("Error with verifying signature: ", e)
+        return false
+    }
 }
 
 export const prepareBufferFromMessage = async (
