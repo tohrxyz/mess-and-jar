@@ -30,6 +30,12 @@ class ChatDB extends Dexie {
         this.version(4).stores({
             messages: "++id, date, room, identity_pubkey, signature"
         })
+        this.version(5).stores({
+            messages: "++id, date, room, identity_pubkey, signature, username"
+        })
+        this.version(6).stores({
+            messages: "++id, date, room, identity_pubkey, signature, username, [username+identity_pubkey]"
+        })
     }
 }
 
@@ -54,6 +60,14 @@ export async function deleteMessage(id: string) {
 export async function getLastTimestamp(roomId: string) {
     const messages = await chatDb.messages.where('room').equals(roomId).toArray()
     return messages.length > 0 ? Number(messages.at(-1)?.date) : 0
+}
+
+export async function getIdentitiesByUsername(username: string) {
+    return await chatDb.messages
+        .where('[username+identity_pubkey]')
+        .between([username, Dexie.minKey], [username, Dexie.maxKey])
+        .toArray()
+        .then(messages => [...new Set(messages.filter(v => v.identity_pubkey).map(m => m.identity_pubkey))]);
 }
 
 export async function saveMessages(messages: ChatMessage[]) {
