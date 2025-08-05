@@ -64,7 +64,8 @@ export default function MessageInput() {
             username: userObj.username,
             msg,
         })
-        const signature = await signMessage({ messageBuffer: preparedMessageBuffToSign, privateKeyHex: userObj.identityKeypairHex.privateKeyHex })        
+
+        const signature = await signMessage({ messageBuffer: preparedMessageBuffToSign, privateKeyHex: userObj.identityKeypairHex.privateKeyHex })
         
         // optimistically save
         saveMessage({
@@ -73,7 +74,8 @@ export default function MessageInput() {
             room: room?.id ?? "general",
             username: userObj.username,
             msg: encryptedMessageTransit,
-            signature: signature.signatureHex
+            signature: signature.signatureHex,
+            identity_pubkey: userObj.identityKeypairHex.privateKeyHex
         });
         lastTimestampRef.current = Number(date);
 
