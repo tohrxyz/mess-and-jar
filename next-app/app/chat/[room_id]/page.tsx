@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useRoomContext } from "./RoomContext";
 import { LOCAL_STORAGE_KEYS } from "@/app/constants/localStorageKeys";
 import { clearStorage, getFromStorage, saveToStorage } from "@/app/lib/localStorage";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Message, Room } from "@/app/types";
 import MessageArea from "@/app/components/MessageArea";
 import MessageInput from "@/app/components/MessageInput";
@@ -29,35 +29,48 @@ export default function RoomPage() {
 
     const messagesLocal = useMessagesLocal(room_id as string);
     const [messages, setMessages] = useState<Message[]>([])
+    const decryptedMessageIdsRef = useRef<{
+        [key: string]: Message
+    }>({})
 
     useEffect(() => {
         const doFn = async () => {
             if (!messagesLocal || !room?.password) return;
             
             const key = await cryptoKeyFromRawExport(room.password);
-            const textDecoder = new TextDecoder()
-            const decryptedMessages: Message[] = [];
+            const textDecoder = new TextDecoder();
             const batchSize = 20;
+            
+            const newlyDecrypted: { [id: string]: Message } = {};
             
             for (let i = 0; i < messagesLocal.length; i += batchSize) {
                 const batch = messagesLocal.slice(i, i + batchSize);
-                const batchResults = await Promise.all(batch.map(async (v) => {
+
+                const toProcess = batch.filter(v => {
+                    const id = `${v.date}-${v.username}-${room?.id ?? "general"}`;
+                    return !decryptedMessageIdsRef.current[id];
+                });
+
+                const batchResults = await Promise.all(toProcess.map(async (v) => {
                     try {
-                        const [ivHex, encMsg] = v.msg.split("_")
-                        const iv = new Uint8Array(hexToArrayBuffer(ivHex))
-                        const decryptedMessageContent = await decryptSubtleClient(encMsg, { key, iv })
-                        const decoded = textDecoder.decode(decryptedMessageContent)
+                        const [ivHex, encMsg] = v.msg.split("_");
+                        const iv = new Uint8Array(hexToArrayBuffer(ivHex));
+                        const decryptedMessageContent = await decryptSubtleClient(encMsg, { key, iv });
+                        const decoded = textDecoder.decode(decryptedMessageContent);
+
                         const preparedMessageBuffToSign = await prepareBufferFromMessage({
                             date: v.date.toString(),
                             room: v.room,
                             username: v.username,
                             msg: decoded
-                        })
+                        });
+
                         const isValidSig = await verifyMessageAgainstPubkeyHex({ 
                             messageBuffer: preparedMessageBuffToSign,
                             publicKeyHex: v.identity_pubkey ?? "",
                             signature: v.signature ?? ""
-                        })
+                        });
+
                         return {
                             ...v,
                             msg: decoded,
@@ -65,7 +78,6 @@ export default function RoomPage() {
                             isSignatureValid: isValidSig
                         } as Message;
                     } catch (error) {
-                        console.error(error)
                         return {
                             ...v,
                             msg: "Unable to decrypt message",
@@ -73,11 +85,27 @@ export default function RoomPage() {
                         } as Message;
                     }
                 }));
-                decryptedMessages.push(...batchResults);
+
+                batchResults.forEach((m) => {
+                    const id = `${m.date}-${m.username}-${room?.id ?? "general"}`;
+                    newlyDecrypted[id] = m;
+                });
             }
-            setMessages(decryptedMessages);
+
+            if (Object.keys(newlyDecrypted).length > 0) {
+                decryptedMessageIdsRef.current = {
+                    ...decryptedMessageIdsRef.current,
+                    ...newlyDecrypted,
+                };
+            }
+
+            const orderedMessages = Object.values(decryptedMessageIdsRef.current)
+                .sort((a, b) => Number(a.date) - Number(b.date));
+
+            setMessages(orderedMessages);
         }
         doFn();
+
     }, [messagesLocal, room?.password])
 
 
