@@ -90,7 +90,6 @@ export async function verifyMessageAgainstPubkeyHex({ messageBuffer, signature, 
         const sigAsBuffer = hexToArrayBuffer(signature)
         return await crypto.subtle.verify(CiphertextAlgorithm.Identity, pubkey, sigAsBuffer, messageBuffer)
     } catch(e) {
-        console.error("Error with verifying signature: ", e)
         return false
     }
 }
