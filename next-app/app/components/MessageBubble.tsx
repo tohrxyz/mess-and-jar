@@ -21,6 +21,13 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const [isLongPress, setIsLongPress] = useState<boolean>(false);
     const [menuPosition, setMenuPosition] = useState<'above' | 'below'>('below');
+    
+    // Image viewport management
+    const [isImageInView, setIsImageInView] = useState<boolean>(true);
+    const [shouldShowImage, setShouldShowImage] = useState<boolean>(true);
+    const imageUnloadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const imageRef = useRef<HTMLDivElement | null>(null);
+    
     const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileSizeRef = useRef<string | null>(null)
     
@@ -164,17 +171,15 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
 
         const observer = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
-                // In view → clear any pending close timer
                 if (notVisibleTimerRef.current) {
                     clearTimeout(notVisibleTimerRef.current);
                     notVisibleTimerRef.current = null;
                 }
             } else {
-                // Out of view → start 10 s timer to auto-close
                 if (!notVisibleTimerRef.current) {
                     notVisibleTimerRef.current = setTimeout(() => {
                         setOpenInfoMenuId(null);
-                    }, 10000);
+                    }, 3000);
                 }
             }
         });
@@ -190,6 +195,65 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
         };
     }, [showInfoMenu]);
 
+    // Image viewport management - unload images that are out of view for 4 seconds
+    useEffect(() => {
+        const imageElement = imageRef.current;
+        // Only observe if this is a media message (has image container)
+        const isMediaMessage = Boolean(imageSrc) || isImagePlaceholder;
+        if (!imageElement || !isMediaMessage) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                const inView = entry.isIntersecting;
+                setIsImageInView(inView);
+
+                if (!inView && imageSrc) {
+                    // Image went out of view and is currently loaded - start timer to unload
+                    if (imageUnloadTimeoutRef.current) {
+                        clearTimeout(imageUnloadTimeoutRef.current);
+                    }
+                    imageUnloadTimeoutRef.current = setTimeout(() => {
+                        // Unload the image after 4 seconds out of view
+                        if (imageSrc && imageSrc.startsWith("blob:")) {
+                            URL.revokeObjectURL(imageSrc);
+                            console.log("unloading image")
+                        }
+                        setImageSrc(null);
+                        setShouldShowImage(false);
+                        setIsImagePlaceholder(true);
+                    }, 4000); // 4 seconds
+                } else if (inView) {
+                    // Image came back into view - cancel any pending unload timer
+                    if (imageUnloadTimeoutRef.current) {
+                        clearTimeout(imageUnloadTimeoutRef.current);
+                        imageUnloadTimeoutRef.current = null;
+                        console.log("clearing timeout")
+                    }
+                    
+                    // If image was unloaded, reload it
+                    if (!shouldShowImage && isImagePlaceholder) {
+                        setShouldShowImage(true);
+                        // The main useEffect will handle reloading the image
+                    }
+                }
+            },
+            { 
+                threshold: 0.1, // Trigger when 10% of the image is visible
+                rootMargin: '800px' // Start loading slightly before entering viewport
+            }
+        );
+
+        observer.observe(imageElement);
+
+        return () => {
+            observer.disconnect();
+            if (imageUnloadTimeoutRef.current) {
+                clearTimeout(imageUnloadTimeoutRef.current);
+                imageUnloadTimeoutRef.current = null;
+            }
+        };
+    }, [imageSrc, shouldShowImage, isImagePlaceholder]);
+
     useEffect(() => {
         let isMounted = true;
         const processMessage = async () => {
@@ -203,6 +267,11 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                 if (isMounted) {
                     setIsImagePlaceholder(true);
                 }
+
+                // Skip loading if image should not be shown (was unloaded due to being out of view)
+                if (!shouldShowImage) {
+                    return;
+                }
                 
                 try {
                     if (!isMounted) return;
@@ -212,7 +281,11 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         const blob = new Blob([image.blob])
                         fileSizeRef.current = formatFileSize(blob.size)
                         const url = URL.createObjectURL(blob)
-                        setImageSrc(url)
+                        if (isMounted) {
+                            setImageSrc(url)
+                            console.log("loading image")
+                            setIsImagePlaceholder(false);
+                        }
                         return
                     }
 
@@ -239,6 +312,8 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         await saveImage({ id: fileId, timestamp: Date.now(), blob})
                         await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
                         setImageSrc(url);
+                        setIsImagePlaceholder(false);
+                        console.log("loaded image")
                     }
                 } catch (error) {
                     if (isMounted) {
@@ -261,7 +336,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
             isMounted = false;
             if (imageSrc && imageSrc.startsWith("blob:")) URL.revokeObjectURL(imageSrc);
         };
-    }, [message.msg, room?.password]);
+    }, [message.msg, room?.password, shouldShowImage]);
 
     const isMedia = Boolean(imageSrc) || isImagePlaceholder;
 
@@ -313,7 +388,11 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
 
                     
                     {(imageSrc) ? (
-                        <div className="relative w-64 h-96 cursor-zoom-in" onClick={() => imageSrc && onImageClick(imageSrc)}>
+                        <div 
+                            ref={imageRef}
+                            className="relative w-64 h-96 cursor-zoom-in" 
+                            onClick={() => imageSrc && onImageClick(imageSrc)}
+                        >
                             <img 
                                 src={imageSrc} 
                                 alt="media" 
@@ -324,7 +403,16 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                             />
                         </div>
                     ) : isImagePlaceholder ? (
-                        <div className="w-64 h-96 bg-gray-600 animate-pulse rounded select-none" />
+                        <div 
+                            ref={imageRef}
+                            className="w-full h-96 bg-gray-600 animate-pulse rounded min-w-64 select-none flex items-center justify-center"
+                        >
+                            {!shouldShowImage && (
+                                <div className="text-gray-400 text-sm">
+                                    {isImageInView ? "Loading..." : "Scroll to load"}
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div className={`select-none ${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all`}>{displayText !== "" ? renderMessageWithLinks(displayText) : (message.msg.startsWith("<<<$#!") ? "Loading media..." : "Unable to decrypt message")}</div>
                      )}
