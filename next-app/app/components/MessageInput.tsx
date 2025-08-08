@@ -133,6 +133,7 @@ export default function MessageInput() {
 
             const newFileId = `${ivHex}_${uuid()}`
             const res = await mutateUploadMedia(encryptedBinary, newFileId)
+            setIsUploading(false);
 
             const msgInjected = `<<<$#!${newFileId}!#$>>>`
             if (res.success) {
@@ -148,8 +149,6 @@ export default function MessageInput() {
             setTimeout(() => {
                 setError(null);
             }, 5000);
-        } finally {
-            setIsUploading(false);
         }
     }
 
