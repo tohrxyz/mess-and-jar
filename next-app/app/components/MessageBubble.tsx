@@ -216,7 +216,6 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         // Unload the image after 4 seconds out of view
                         if (imageSrc && imageSrc.startsWith("blob:")) {
                             URL.revokeObjectURL(imageSrc);
-                            console.log("unloading image")
                         }
                         setImageSrc(null);
                         setShouldShowImage(false);
@@ -227,7 +226,6 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     if (imageUnloadTimeoutRef.current) {
                         clearTimeout(imageUnloadTimeoutRef.current);
                         imageUnloadTimeoutRef.current = null;
-                        console.log("clearing timeout")
                     }
                     
                     // If image was unloaded, reload it
@@ -283,7 +281,6 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         const url = URL.createObjectURL(blob)
                         if (isMounted) {
                             setImageSrc(url)
-                            console.log("loading image")
                             setIsImagePlaceholder(false);
                         }
                         return
@@ -313,7 +310,6 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
                         setImageSrc(url);
                         setIsImagePlaceholder(false);
-                        console.log("loaded image")
                     }
                 } catch (error) {
                     if (isMounted) {
