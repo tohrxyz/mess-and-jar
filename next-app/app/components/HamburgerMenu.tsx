@@ -5,10 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Room, RoomBackendMethod, RoomGetResponse } from "../types/room";
 import { v4 as uuidv4 } from 'uuid';
-import { decryptStringClient, encryptStringClient, getHashClient } from "../lib/crypto-client";
+import { arrayBufferToHex, cryptoKeyFromRawExport, decryptSubtleClient, encryptSubtleClient, generateKeySubtleClient, getNewIV, hashSubtleClientHex, hexToArrayBuffer } from "../lib/crypto-client";
 import { roomOperation } from "../mutations/room";
 import { User } from "../types/user";
 import { getUserFromStorage } from "../lib/get-user-util";
+import { deleteAllMessages } from "../indexdb/chat-db";
 
 interface HamburgerMenuProps {
     isOpen: boolean;
@@ -35,6 +36,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [copiedUsername, setCopiedUsername] = useState(false);
     const [copiedPassword, setCopiedPassword] = useState(false);
+    const [copiedPublicKey, setCopiedPublicKey] = useState(false);
 
     useEffect(() => {
         const rooms = getFromStorage(LOCAL_STORAGE_KEYS.ROOMS);
@@ -86,17 +88,19 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         router.push("/auth");
     }
 
-    const toggleDropdown = (type: 'create' | 'join') => {
+    const toggleDropdown = async (type: 'create' | 'join') => {
         if (activeDropdown === type) {
             setActiveDropdown(null);
         } else {
             setActiveDropdown(type);
             if (type === 'create') {
+                const { rawKey } = await generateKeySubtleClient()
+                const hex = arrayBufferToHex(rawKey)
                 // Reset create form and generate new UUID when opening
                 setCreateFormData({
                     name: "",
                     id: uuidv4(),
-                    password: ""
+                    password: hex,
                 });
             } else {
                 // Reset join form when opening
@@ -132,14 +136,23 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify([...rooms, room]));
         setCreateFormData({
             name: "",
-            id: uuidv4(),
+            id: "",
             password: ""
         });
-        const encryptedRoomName = encryptStringClient(room.name, room.password)
+
+        const { raw: iv, hex: ivHex } = getNewIV() 
+        const key = await cryptoKeyFromRawExport(room.password)
+
+        const [hashedRoomPassword, encryptedRoomName] = await Promise.all([
+            hashSubtleClientHex(room.password),
+            encryptSubtleClient(room.name, { iv, key }).then(encrypted => arrayBufferToHex(encrypted))
+        ])
+
+        const transitNameWithIv = `${ivHex}_${encryptedRoomName}`
         await roomOperation({ 
             id: room.id, 
-            name: encryptedRoomName, 
-            password: getHashClient(room.password), 
+            name: transitNameWithIv, 
+            password: hashedRoomPassword, 
             method: RoomBackendMethod.RoomCreate
         })
         setActiveDropdown(null);
@@ -161,7 +174,14 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             id: joinFormData.id,
             method: RoomBackendMethod.RoomGet
         }) as RoomGetResponse
-        const decryptedName = decryptStringClient(roomResponse?.room?.name ?? "", joinFormData.password)
+
+        const key = await cryptoKeyFromRawExport(joinFormData.password)
+        const transitName = roomResponse.room.name?.split("_")
+        const iv = new Uint8Array(hexToArrayBuffer(transitName[0]))
+        const encName = transitName[1]
+        const decryptedBuffer = await decryptSubtleClient(encName, { key, iv })
+        const decryptedName = new TextDecoder().decode(decryptedBuffer)
+
         const room: Room = {
             id: joinFormData.id,
             name: decryptedName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
@@ -196,6 +216,15 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         }
     }
 
+    const nukeRoomsAndMessages = async () => {
+        if (window.confirm("Are you sure you want to nuke all rooms and messages?")) {
+            clearStorage(LOCAL_STORAGE_KEYS.ROOMS);
+            setRooms([]);
+            await deleteAllMessages();
+            window.location.replace("/");
+        }
+    }
+
     const handleRoomClick = (roomId: string) => {
         onClose();
         router.push(`/chat/${roomId}`);
@@ -205,16 +234,19 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         setIsProfileDropdownOpen((prev) => !prev);
     };
 
-    const handleCopy = (text: string, type: "username" | "password") => {
+    const handleCopy = (text: string, type: "username" | "password" | "publicKey") => {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(text);
         }
         if (type === "username") {
             setCopiedUsername(true);
             setTimeout(() => setCopiedUsername(false), 2000);
-        } else {
+        } else if (type === "password") {
             setCopiedPassword(true);
             setTimeout(() => setCopiedPassword(false), 2000);
+        } else {
+            setCopiedPublicKey(true);
+            setTimeout(() => setCopiedPublicKey(false), 2000);
         }
     };
 
@@ -320,12 +352,11 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                                     
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wide">Password</label>
-                                        <input
-                                            type="password"
+                                        <textarea
                                             value={createFormData.password}
-                                            onChange={(e) => handleCreateInputChange("password", e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                            className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 cursor-not-allowed rounded-xl text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                                             placeholder="Secure your room"
+                                            readOnly
                                         />
                                     </div>
                                     
@@ -396,7 +427,20 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                 {/* Rooms List */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="p-4">
-                        <h3 className="text-sm font-medium text-gray-300 mb-3">Your Rooms</h3>
+                        <div className="flex items-center justify-between items-center mb-3">
+                            <h3 className="text-sm font-medium text-gray-300">Your Rooms</h3>
+                            <div>
+                            <button
+                                onClick={nukeRoomsAndMessages}
+                                className="text-sm text-gray-400 hover:text-red-400 transition-colors flex items-center gap-2 cursor-pointer"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                </svg>
+                                Nuke Local History
+                            </button>
+                            </div>
+                        </div>
                         {rooms.length === 0 ? (
                             <p className="text-gray-400 text-sm">No rooms yet. Create or join one!</p>
                         ) : (
@@ -478,6 +522,32 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                                                 className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
                                             >
                                                 {copiedUsername ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-gray-300 mb-1 uppercase tracking-wide">Public Key</label>
+                                                <textarea
+                                                    readOnly
+                                                    value={user.identityKeypairHex.publicKeyHex}
+                                                    className="w-full px-3 py-2 bg-gray-700/80 border border-gray-600 rounded-lg text-white text-xs font-mono cursor-not-allowed resize-none"
+                                                    rows={3}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleCopy(user.identityKeypairHex.publicKeyHex, "publicKey")}
+                                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors mt-[26px]"
+                                            >
+                                                {copiedPublicKey ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-400">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                                                     </svg>

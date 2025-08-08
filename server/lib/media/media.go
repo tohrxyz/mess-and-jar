@@ -9,24 +9,23 @@ func FilepathFromMediaId(id string) string {
 	return MEDIA_PATH + id
 }
 
-func SaveMediaToFile(binaryString string, fileId string) error {
+func SaveMediaToFile(binaryData []byte, fileId string) error {
 	filepath := FilepathFromMediaId(fileId)
 	err := lib.CreateDirOrFileIfNotExists(MEDIA_PATH, filepath)
 	if err != nil {
 		return err
 	}
 
-	err = lib.WriteToFile(binaryString, MEDIA_DIR, filepath, false)
+	err = lib.WriteToFile(binaryData, MEDIA_DIR, filepath, false)
 	return err
 }
 
-func GetMediaFromFile(fileId string) (string, error) {
+func GetMediaFromFile(fileId string) ([]byte, error) {
 	filepath := FilepathFromMediaId(fileId)
 	data, err := lib.ReadFile(filepath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	strData := string(data)
-	return strData, nil
+	return data, nil
 }

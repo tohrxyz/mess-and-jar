@@ -7,7 +7,13 @@ export type SendMessageResponse = {
     message: string;
 }
 
-export const mutateSendMessage = async (room: string, username: string, msg: string, date: string): Promise<SendMessageResponse> => {
+export const mutateSendMessage = async (
+    room: string, 
+    username: string, 
+    msg: string, 
+    date: string,
+    signature: string,
+): Promise<SendMessageResponse> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
     const user = getFromStorage(LOCAL_STORAGE_KEYS.USER);
     const userObj = JSON.parse(user);
@@ -17,6 +23,7 @@ export const mutateSendMessage = async (room: string, username: string, msg: str
     formData.append("msg", msg);
     formData.append("date", date);
     formData.append("password", getHashClient(userObj.password));
+    formData.append("signature", signature)
     const response = await fetch(`${apiUrl}/send_message`, {
         method: "POST",
         body: formData,
@@ -39,7 +46,7 @@ export type UploadMediaResponse = {
 }
 
 export const mutateUploadMedia = async (
-    binaryData: string,
+    binaryData: ArrayBuffer,
     file_id: string
 ): Promise<UploadMediaResponse> => {
     const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;

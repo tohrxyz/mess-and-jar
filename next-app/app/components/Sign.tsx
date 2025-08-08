@@ -5,13 +5,17 @@ import { User } from "../types";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutateAuth } from "../mutations/auth";
-import { getHashClient } from "../lib/crypto-client";
+import { getHashClient, getNewIdentityAsHex, hashSubtleClientHex } from "../lib/crypto-client";
 
 export default function Sign() {
     const router = useRouter();
     const [user, setUser] = useState<User>({
         username: "",
         password: "",
+        identityKeypairHex: {
+            privateKeyHex: "",
+            publicKeyHex: ""
+        }
     });
     const [error, setError] = useState<string | null>(null);
 
@@ -20,14 +24,18 @@ export default function Sign() {
             setError("Username and password are required");
             return;
         }
+
+        const identityKeyPairHex = await getNewIdentityAsHex()
+        const pubkey = identityKeyPairHex.publicKeyHex
         
-        const hashedPassword = getHashClient(user.password);
-        const response = await mutateAuth(user.username, hashedPassword);
+        const hashedPassword = await hashSubtleClientHex(user.password);
+        const response = await mutateAuth(user.username, hashedPassword, pubkey);
         
         if (response.success) {
             const jsonToSave = JSON.stringify({
                 username: user.username,
                 password: user.password,
+                identityKeypairHex: identityKeyPairHex
             });
             saveToStorage(LOCAL_STORAGE_KEYS.USER, jsonToSave);
             router.push("/chat");

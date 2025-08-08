@@ -76,8 +76,24 @@ func WriteStringifiedJsonToFileAppend(val string, room string) error {
 	}
 }
 
-func WriteToFile(val string, dir string, filepath string, isAppend bool) error {
-	valBytes := []byte(val + "\n")
+// WriteData represents data that can be written to a file
+type WriteData interface {
+	~string | ~[]byte
+}
+
+func WriteToFile[T WriteData](val T, dir string, filepath string, isAppend bool) error {
+	var valBytes []byte
+
+	// Convert to any to enable type assertion
+	anyVal := any(val)
+
+	if str, ok := anyVal.(string); ok {
+		valBytes = []byte(str + "\n")
+	} else if bytes, ok := anyVal.([]byte); ok {
+		valBytes = bytes
+	} else {
+		return fmt.Errorf("unsupported type: %T", val)
+	}
 
 	err := CreateDirOrFileIfNotExists(dir, filepath)
 	if err == nil {
