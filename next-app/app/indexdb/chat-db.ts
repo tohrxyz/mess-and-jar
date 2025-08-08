@@ -57,6 +57,14 @@ export async function deleteMessage(id: string) {
     await chatDb.messages.delete(id)
 }
 
+export async function deleteMessagesByRoom(roomId: string) {
+    await chatDb.messages.where('room').equals(roomId).delete()
+}
+
+export async function deleteAllMessages() {
+    await chatDb.messages.clear()
+}
+
 export async function getLastTimestamp(roomId: string) {
     const messages = await chatDb.messages.where('room').equals(roomId).toArray()
     return messages.length > 0 ? Number(messages.at(-1)?.date) : 0
