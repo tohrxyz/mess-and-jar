@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/glebarez/go-sqlite"
@@ -33,7 +34,77 @@ func Init() {
 	}
 
 	createSchema()
+	checkAndAddMissingColumns()
+
 	log.Println("Database initialized successfully")
+}
+
+func addColumnIfNotExists(table, column, columnType string) error {
+	exists, err := isColumnExistInTable(table, column)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, columnType)
+		_, err := DB.Exec(query)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isColumnExistInTable(table, column string) (bool, error) {
+	query := fmt.Sprintf("PRAGMA table_info(%s);", table)
+	rows, err := DB.Query(query)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	var (
+		cid        int
+		name       string
+		colType    string
+		notnull    int
+		dfltValue  sql.NullString
+		primaryKey int
+	)
+
+	for rows.Next() {
+		if err := rows.Scan(&cid, &name, &colType, &notnull, &dfltValue, &primaryKey); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func checkAndAddMissingColumns() {
+	// keep this in sync with newest additions
+	tables := map[string][]struct {
+		column     string
+		columnType string
+	}{
+		"users": {
+			{"identity_pubkey", "TEXT"},
+		},
+		"messages": {
+			{"identity_pubkey", "TEXT"},
+			{"signature", "TEXT"},
+		},
+	}
+
+	for table, columns := range tables {
+		for _, col := range columns {
+			err := addColumnIfNotExists(table, col.column, col.columnType)
+			if err != nil {
+				log.Printf("Failed to add column %s to table %s: %v", col.column, table, err)
+			}
+		}
+	}
 }
 
 func createSchema() {
