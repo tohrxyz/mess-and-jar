@@ -312,19 +312,19 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     )}
 
                     
-                    {imageSrc ? (
-                        <div className="relative w-full max-h-96 min-w-64 cursor-zoom-in" onClick={() => imageSrc && onImageClick(imageSrc)}>
+                    {(imageSrc) ? (
+                        <div className="relative w-64 h-96 cursor-zoom-in" onClick={() => imageSrc && onImageClick(imageSrc)}>
                             <img 
                                 src={imageSrc} 
                                 alt="media" 
-                                className="w-full h-auto max-h-96 object-contain rounded select-none pointer-events-none"
+                                className="w-full h-full object-cover rounded select-none pointer-events-none"
                                 style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
                                 onContextMenu={(e) => e.preventDefault()}
                                 onDragStart={(e) => e.preventDefault()}
                             />
                         </div>
                     ) : isImagePlaceholder ? (
-                        <div className="w-full aspect-[2/3] bg-gray-600 animate-pulse rounded min-w-64 select-none" />
+                        <div className="w-64 h-96 bg-gray-600 animate-pulse rounded select-none" />
                     ) : (
                         <div className={`select-none ${displayText !== "" && !displayText.includes("Unable to decrypt") ? "" : "text-gray-400"} break-all`}>{displayText !== "" ? renderMessageWithLinks(displayText) : (message.msg.startsWith("<<<$#!") ? "Loading media..." : "Unable to decrypt message")}</div>
                      )}
