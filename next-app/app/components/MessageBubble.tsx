@@ -6,6 +6,7 @@ import { mutateDownloadMedia } from "../mutations/message";
 import { deleteOld, getImage, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { extractIdFromImageSource, formatFileSize } from "../lib/format-util";
 import { MESSAGE_CODES } from "../constants/messageCodes";
+import { getMediaTypeFromMessage } from "../lib/recognizeMedia";
 
 interface MessageItemProps {
     message: Message;
@@ -22,6 +23,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const [isLongPress, setIsLongPress] = useState<boolean>(false);
     const [menuPosition, setMenuPosition] = useState<'above' | 'below'>('below');
+    const [mediaType, setMediaType] = useState<'photo' | 'video' | null>(null)
     
     // Image viewport management
     const [isImageInView, setIsImageInView] = useState<boolean>(true);
@@ -257,10 +259,14 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
         let isMounted = true;
         const processMessage = async () => {
             // Check if the decrypted message is a media placeholder
-            const mediaPrefix = MESSAGE_CODES.PHOTO.START;
-            const mediaSuffix = MESSAGE_CODES.PHOTO.END;
-            if (message.msg.startsWith(mediaPrefix) && message.msg.endsWith(mediaSuffix)) {
-                const fileId = message.msg.slice(mediaPrefix.length, message.msg.length - mediaSuffix.length); 
+            const mediaTypeOrNull = getMediaTypeFromMessage(message.msg)
+            setMediaType(mediaTypeOrNull)
+            if (mediaTypeOrNull) {
+                let mediaCodes = {
+                    START: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.START : MESSAGE_CODES.VIDEO.START,
+                    END: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.START : MESSAGE_CODES.VIDEO.END
+                }
+                const fileId = message.msg.slice(mediaCodes.START.length, message.msg.length - mediaCodes.END.length); 
                 
                 // Always show placeholder first for media messages
                 if (isMounted) {
@@ -388,16 +394,20 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                         <div 
                             ref={imageRef}
                             className="relative w-64 h-96 cursor-zoom-in" 
-                            onClick={() => imageSrc && onImageClick(imageSrc)}
+                            onClick={() => imageSrc && mediaType === 'photo' && onImageClick(imageSrc)}
                         >
-                            <img 
-                                src={imageSrc} 
-                                alt="media" 
-                                className="w-full h-full object-cover rounded select-none pointer-events-none"
-                                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
-                                onContextMenu={(e) => e.preventDefault()}
-                                onDragStart={(e) => e.preventDefault()}
-                            />
+                            { mediaType === 'photo' ? (
+                                <img 
+                                    src={imageSrc} 
+                                    alt="media" 
+                                    className="w-full h-full object-cover rounded select-none pointer-events-none"
+                                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    onDragStart={(e) => e.preventDefault()}
+                                />
+                            ): (
+                                <video src={imageSrc} controls playsInline className="w-full h-full object-contain rounded" preload="metadata"></video>
+                            )}
                         </div>
                     ) : isImagePlaceholder ? (
                         <div 

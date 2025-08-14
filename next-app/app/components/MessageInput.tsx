@@ -136,7 +136,14 @@ export default function MessageInput() {
             const res = await mutateUploadMedia(encryptedBinary, newFileId)
             setIsUploading(false);
 
-            const msgInjected = `${MESSAGE_CODES.PHOTO.START}${newFileId}${MESSAGE_CODES.PHOTO.END}`
+            let msgInjected = ""
+            if (file.type.startsWith("image")) {
+                msgInjected = `${MESSAGE_CODES.PHOTO.START}${newFileId}${MESSAGE_CODES.PHOTO.END}`
+            } else if (file.type.startsWith("video")) {
+                msgInjected = MESSAGE_CODES.VIDEO.START + newFileId + MESSAGE_CODES.VIDEO.END
+            } else {
+                throw new Error("Unsupported media type")
+            }
             if (res.success) {
                 const date = Date.now()
                 await saveImage({ id: newFileId, timestamp: date, blob: new Blob([loadedFile])})
@@ -172,7 +179,7 @@ export default function MessageInput() {
                     type="file"
                     id="file-input"
                     className="hidden"
-                    accept="image/*"
+                    accept="image/*,video/mp4"
                     onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
