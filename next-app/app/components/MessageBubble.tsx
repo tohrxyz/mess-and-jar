@@ -5,6 +5,7 @@ import { cryptoKeyFromRawExport, decryptSubtleClient, hexToArrayBuffer } from ".
 import { mutateDownloadMedia } from "../mutations/message";
 import { deleteOld, getImage, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { extractIdFromImageSource, formatFileSize } from "../lib/format-util";
+import { MESSAGE_CODES } from "../constants/messageCodes";
 
 interface MessageItemProps {
     message: Message;
@@ -256,8 +257,8 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
         let isMounted = true;
         const processMessage = async () => {
             // Check if the decrypted message is a media placeholder
-            const mediaPrefix = "<<<$#!";
-            const mediaSuffix = "!#$>>>";
+            const mediaPrefix = MESSAGE_CODES.PHOTO.START;
+            const mediaSuffix = MESSAGE_CODES.PHOTO.END;
             if (message.msg.startsWith(mediaPrefix) && message.msg.endsWith(mediaSuffix)) {
                 const fileId = message.msg.slice(mediaPrefix.length, message.msg.length - mediaSuffix.length); 
                 

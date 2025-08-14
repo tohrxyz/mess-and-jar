@@ -9,6 +9,7 @@ import { v4 as uuid } from "uuid";
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/media-db";
 import { deleteMessage, getLastTimestamp, saveMessage } from "../indexdb/chat-db";
 import { User } from "../types";
+import { MESSAGE_CODES } from "../constants/messageCodes";
 
 const ProgressBar = ({ isUploading, error }: { isUploading: boolean, error: null | Error }) => {
     if (isUploading) {
@@ -135,7 +136,7 @@ export default function MessageInput() {
             const res = await mutateUploadMedia(encryptedBinary, newFileId)
             setIsUploading(false);
 
-            const msgInjected = `<<<$#!${newFileId}!#$>>>`
+            const msgInjected = `${MESSAGE_CODES.PHOTO.START}${newFileId}${MESSAGE_CODES.PHOTO.END}`
             if (res.success) {
                 const date = Date.now()
                 await saveImage({ id: newFileId, timestamp: date, blob: new Blob([loadedFile])})
