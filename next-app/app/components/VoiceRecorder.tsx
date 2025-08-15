@@ -132,9 +132,29 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             sendVoiceRecording,
         }));
 
+        const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
+
+        useEffect(() => {
+            const checkMicPermission = async () => {
+                try {
+                    const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+                    setHasMicPermission(permission.state === 'granted');
+                    
+                    permission.addEventListener('change', () => {
+                        setHasMicPermission(permission.state === 'granted');
+                    });
+                } catch (error) {
+                    // Fallback for browsers that don't support permissions API
+                    setHasMicPermission(null);
+                }
+            };
+
+            checkMicPermission();
+        }, []);
+
         return (
             <button
-                className={`rounded-lg transition-all duration-300 flex items-center ${
+                className={`rounded-lg transition-all duration-300 flex items-center ${!hasMicPermission && 'cursor-not-allowed bg-red-900 hover:bg-red-900'} ${
                     isUploading
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed p-2"
                         : isRecording
@@ -160,7 +180,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                         await startVoiceRecording();
                     }
                 }}
-                disabled={isUploading}
+                disabled={isUploading || !hasMicPermission}
                 aria-pressed={isRecording}
                 aria-label={isRecording ? "Stop recording" : isVoiceReady ? "Voice recording ready" : "Start voice recording"}
                 title={isRecording ? "Stop recording" : isVoiceReady ? "Voice recording ready" : "Start voice recording"}
