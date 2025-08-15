@@ -47,6 +47,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder.current = new window.MediaRecorder(stream);
             mediaRecorder.current.ondataavailable = (e) => chunks.current.push(e.data);
+            mediaRecorder.current.onstart = (_) => setIsRecording(true)
             mediaRecorder.current.onstop = () => {
                 const blob = new Blob(chunks.current, { type: "audio/webm" });
                 setAudioUrl(URL.createObjectURL(blob));
@@ -132,29 +133,31 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             sendVoiceRecording,
         }));
 
-        const [hasMicPermission, setHasMicPermission] = useState<boolean | null>(null);
+        const [micPermissionState, setMicPermissionState] = useState<PermissionState | null>(null);
 
         useEffect(() => {
             const checkMicPermission = async () => {
                 try {
                     const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-                    setHasMicPermission(permission.state === 'granted');
+                    setMicPermissionState(permission.state);
                     
                     permission.addEventListener('change', () => {
-                        setHasMicPermission(permission.state === 'granted');
+                        setMicPermissionState(permission.state);
                     });
                 } catch (error) {
                     // Fallback for browsers that don't support permissions API
-                    setHasMicPermission(null);
+                    setMicPermissionState(null);
                 }
             };
 
             checkMicPermission();
         }, []);
 
+        const isMicDenied = micPermissionState === 'denied'
+
         return (
             <button
-                className={`rounded-lg transition-all duration-300 flex items-center ${!hasMicPermission && 'cursor-not-allowed bg-red-900 hover:bg-red-900'} ${
+                className={`rounded-lg transition-all duration-300 flex items-center ${isMicDenied && 'cursor-not-allowed bg-red-900 hover:bg-red-900'} ${
                     isUploading
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed p-2"
                         : isRecording
@@ -172,7 +175,6 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                         setIsVoiceReady(true);
                     } else {
                         setRecordingSeconds(0);
-                        setIsRecording(true);
                         setIsVoiceReady(false);
                         setAudioDuration(0);
                         setCurrentPlaybackTime(0);
@@ -180,7 +182,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                         await startVoiceRecording();
                     }
                 }}
-                disabled={isUploading || !hasMicPermission}
+                disabled={isUploading || isMicDenied}
                 aria-pressed={isRecording}
                 aria-label={isRecording ? "Stop recording" : isVoiceReady ? "Voice recording ready" : "Start voice recording"}
                 title={isRecording ? "Stop recording" : isVoiceReady ? "Voice recording ready" : "Start voice recording"}
