@@ -79,15 +79,14 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                 const encryptedBinary = await encryptSubtleClient(audioAsArrBuff, { iv, key });
                 const res = await mutateUploadMedia(encryptedBinary, newFileId);
                 if (res.success) {
-                    setIsUploading(false)
                     const date = Date.now();
                     await saveImage({ id: newFileId, timestamp: date, blob: blob });
                     await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB);
                     await handleSendMessage(msgInjected, date.toString());
                 } else {
-                    setIsUploading(false)
                     throw new Error("Failed to upload media");
                 }
+                setIsUploading(false)
                 setIsVoiceReady(false);
                 setRecordingSeconds(0);
                 setAudioDuration(0);
