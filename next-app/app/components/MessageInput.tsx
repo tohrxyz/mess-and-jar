@@ -172,7 +172,9 @@ export default function MessageInput() {
                 <input
                     type="text"
                     placeholder="Type a message..."
-                    className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                        (isRecording || isVoiceReady) ? "hidden sm:flex" : "flex"
+                    }`}
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={handleOnKeyDown}
@@ -199,7 +201,7 @@ export default function MessageInput() {
                                 isUploading 
                                     ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
                                     : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
-                            }`}
+                            } ${(isRecording || isVoiceReady) ? "hidden sm:flex" : "flex"}`}
                             onClick={() => {
                                 if (!isUploading) {
                                     document.getElementById('file-input')?.click();

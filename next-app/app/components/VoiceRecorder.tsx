@@ -161,9 +161,9 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                     isUploading
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed p-2"
                         : isRecording
-                            ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white pl-3 pr-4 py-3 w-52 sm:w-64 shadow-lg shadow-red-500/25"
+                            ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white pl-3 pr-4 py-3 flex-1 sm:w-64 shadow-lg shadow-red-500/25"
                             : isVoiceReady
-                                ? "bg-gradient-to-r from-red-600 to-red-700 text-white pl-3 pr-4 py-3 w-52 sm:w-64 cursor-default shadow-lg shadow-red-500/25"
+                                ? "bg-gradient-to-r from-red-600 to-red-700 text-white pl-3 pr-4 py-3 flex-1 sm:w-64 cursor-default shadow-lg shadow-red-500/25"
                                 : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 hover:shadow-md transition-shadow"
                 }`}
                 onClick={async () => {
