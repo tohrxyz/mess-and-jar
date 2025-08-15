@@ -94,6 +94,13 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             if (!room || !room?.password) throw new Error(`Can't access room [${room?.id}] password.`);
 
             setIsUploading(true);
+            
+            // Add timeout protection to prevent stuck upload state
+            const uploadTimeout = setTimeout(() => {
+                console.warn('Voice recording upload taking longer than expected, resetting upload state');
+                setIsUploading(false);
+            }, 30000); // 30 second timeout
+
             try {
                 const response = await fetch(audioUrl);
                 const blob = await response.blob();
@@ -110,11 +117,14 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                     const date = Date.now();
                     await saveImage({ id: newFileId, timestamp: date, blob: blob });
                     await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB);
-                    await handleSendMessage(msgInjected, date.toString());
+                    const messageResult = await handleSendMessage(msgInjected, date.toString());
+                    if (messageResult instanceof Error) {
+                        throw messageResult;
+                    }
                 } else {
                     throw new Error("Failed to upload media");
                 }
-                setIsUploading(false)
+                // Success - reset all states
                 setIsVoiceReady(false);
                 setRecordingSeconds(0);
                 setAudioDuration(0);
@@ -123,8 +133,12 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                 setRecordingMimeType('audio/webm');
             } catch (e) {
                 console.log("Error with uploading audio: ", e);
+                // Reset voice states on error but keep upload failed for user feedback
+            } finally {
+                // Clear timeout and always reset uploading state
+                clearTimeout(uploadTimeout);
+                setIsUploading(false);
             }
-            setIsUploading(false);
         };
 
         useEffect(() => {
