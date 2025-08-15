@@ -23,7 +23,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const [isLongPress, setIsLongPress] = useState<boolean>(false);
     const [menuPosition, setMenuPosition] = useState<'above' | 'below'>('below');
-    const [mediaType, setMediaType] = useState<'photo' | 'video' | null>(null)
+    const [mediaType, setMediaType] = useState<'photo' | 'video' | "audio" | null>(null)
     
     // Image viewport management
     const [isImageInView, setIsImageInView] = useState<boolean>(true);
@@ -263,8 +263,12 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
             setMediaType(mediaTypeOrNull)
             if (mediaTypeOrNull) {
                 let mediaCodes = {
-                    START: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.START : MESSAGE_CODES.VIDEO.START,
-                    END: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.START : MESSAGE_CODES.VIDEO.END
+                    START: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.START : 
+                           mediaTypeOrNull === 'video' ? MESSAGE_CODES.VIDEO.START : 
+                           MESSAGE_CODES.AUDIO.START,
+                    END: mediaTypeOrNull === 'photo' ? MESSAGE_CODES.PHOTO.END : 
+                         mediaTypeOrNull === 'video' ? MESSAGE_CODES.VIDEO.END : 
+                         MESSAGE_CODES.AUDIO.END
                 }
                 const fileId = message.msg.slice(mediaCodes.START.length, message.msg.length - mediaCodes.END.length); 
                 
@@ -393,7 +397,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                     {(imageSrc) ? (
                         <div 
                             ref={imageRef}
-                            className="relative w-64 h-96 cursor-zoom-in" 
+                            className={`relative ${mediaType === 'audio' ? 'w-64 h-16' : 'w-64 h-96'} ${mediaType === 'photo' ? 'cursor-zoom-in' : ''}`}
                             onClick={() => imageSrc && mediaType === 'photo' && onImageClick(imageSrc)}
                         >
                             { mediaType === 'photo' ? (
@@ -405,9 +409,11 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                                     onContextMenu={(e) => e.preventDefault()}
                                     onDragStart={(e) => e.preventDefault()}
                                 />
-                            ): (
+                            ): mediaType === 'video' ? (
                                 <video src={imageSrc} controls playsInline className="w-full h-full object-contain rounded" preload="metadata"></video>
-                            )}
+                            ) : mediaType === 'audio' ? (
+                                <audio src={imageSrc} controls className="w-full h-full rounded" preload="metadata"></audio>
+                            ) : null}
                         </div>
                     ) : isImagePlaceholder ? (
                         <div 

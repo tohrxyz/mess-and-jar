@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRoomContext } from "../chat/[room_id]/RoomContext";
 import { mutateSendMessage, mutateUploadMedia } from "../mutations/message";
 import { arrayBufferToHex, cryptoKeyFromRawExport, encryptSubtleClient, getNewIV, prepareBufferFromMessage, signMessage } from "../lib/crypto-client";
@@ -10,6 +10,7 @@ import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from "../indexdb/
 import { deleteMessage, getLastTimestamp, saveMessage } from "../indexdb/chat-db";
 import { User } from "../types";
 import { MESSAGE_CODES } from "../constants/messageCodes";
+import VoiceRecorder, { VoiceRecorderHandle } from "./VoiceRecorder";
 
 const ProgressBar = ({ isUploading, error }: { isUploading: boolean, error: null | Error }) => {
     if (isUploading) {
@@ -45,8 +46,11 @@ const ProgressBar = ({ isUploading, error }: { isUploading: boolean, error: null
 export default function MessageInput() {
     const [error, setError] = useState<null | Error>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isVoiceReady, setIsVoiceReady] = useState(false);
     const { inputMessage, setInputMessage, room, user, lastTimestampRef, messageAreaScrollRef } = useRoomContext();
     const queryClient = useQueryClient();
+    const voiceRef = useRef<VoiceRecorderHandle | null>(null);
 
     const handleSendMessage = async (msg: string, forcedDate?: string): Promise<null | Error> => {
         const userObj = JSON.parse(user ?? "{}") as User;
@@ -175,48 +179,68 @@ export default function MessageInput() {
                     suppressHydrationWarning
                     disabled={isUploading}
                 />
-                <input
-                    type="file"
-                    id="file-input"
-                    className="hidden"
-                    accept="image/*,video/mp4"
-                    onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                            handleSendMedia(file);
-                        }
-                    }}
-                    disabled={isUploading}
+                {!isRecording && !isVoiceReady && (
+                    <>
+                        <input
+                            type="file"
+                            id="file-input"
+                            className="hidden"
+                            accept="image/*,video/mp4"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    handleSendMedia(file);
+                                }
+                            }}
+                            disabled={isUploading}
+                        />
+                        <button 
+                            className={`p-2 rounded-lg transition-all duration-200 ${
+                                isUploading 
+                                    ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
+                                    : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
+                            }`}
+                            onClick={() => {
+                                if (!isUploading) {
+                                    document.getElementById('file-input')?.click();
+                                }
+                            }}
+                            disabled={isUploading}
+                            aria-label="Choose file"
+                            title="Choose file"
+                        >
+                            {isUploading ? (
+                                <div className="size-5 flex items-center justify-center">
+                                    <div className="size-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                                </svg>
+                            )}
+                        </button>
+                    </>
+                )}
+                <VoiceRecorder
+                    ref={voiceRef}
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    onVoiceReadyChange={setIsVoiceReady}
+                    onRecordingChange={setIsRecording}
+                    handleSendMessage={handleSendMessage}
                 />
-                <button 
-                    className={`p-2 rounded-lg transition-all duration-200 ${
-                        isUploading 
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
-                            : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
-                    }`}
-                    onClick={() => {
-                        if (!isUploading) {
-                            document.getElementById('file-input')?.click();
-                        }
-                    }}
-                    disabled={isUploading}
-                >
-                    {isUploading ? (
-                        <div className="size-5 flex items-center justify-center">
-                            <div className="size-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
-                        </svg>
-                    )}
-                </button>
                 <button 
                     className={`bg-blue-600 hover:bg-blue-700 text-white px-2 rounded-lg font-medium transition-colors duration-200 ${
                         error ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-600 duration-100" : ""
                     } ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`} 
-                    onClick={() => handleSendMessage(inputMessage)}
-                    disabled={inputMessage.length === 0 || error !== null || isUploading}
+                    onClick={async () => {
+                        if (isVoiceReady) {
+                            await voiceRef.current?.sendVoiceRecording();
+                            return;
+                        }
+                        await handleSendMessage(inputMessage);
+                    }}
+                    disabled={(inputMessage.length === 0 && !isVoiceReady) || error !== null || isUploading}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.126A59.768 59.768 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.876L5.999 12Zm0 0h7.5" />
