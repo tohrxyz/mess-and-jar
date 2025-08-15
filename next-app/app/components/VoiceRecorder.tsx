@@ -32,6 +32,8 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
         const mediaRecorder = useRef<MediaRecorder | null>(null);
         const chunks = useRef<Blob[]>([]);
         const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+        const [audioDuration, setAudioDuration] = useState(0);
+        const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
 
         useEffect(() => {
             onVoiceReadyChange?.(isVoiceReady);
@@ -85,6 +87,9 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                 }
                 setIsVoiceReady(false);
                 setRecordingSeconds(0);
+                setAudioDuration(0);
+                setCurrentPlaybackTime(0);
+                setIsPlayingAudio(false);
             } catch (e) {
                 console.log("Error with uploading audio: ", e);
             }
@@ -103,6 +108,23 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
             return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        };
+
+        const formatPlaybackTime = (current: number, total: number): string => {
+            const formatTime = (time: number) => {
+                if (!isFinite(time) || isNaN(time) || time < 0) {
+                    return "00:00";
+                }
+                const minutes = Math.floor(time / 60);
+                const seconds = Math.floor(time % 60);
+                return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+            };
+            
+            if (!isFinite(total) || isNaN(total) || total <= 0) {
+                return formatTime(current);
+            }
+            
+            return `${formatTime(current)} / ${formatTime(total)}`;
         };
 
         useImperativeHandle(ref, () => ({
@@ -132,6 +154,9 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                         setRecordingSeconds(0);
                         setIsRecording(true);
                         setIsVoiceReady(false);
+                        setAudioDuration(0);
+                        setCurrentPlaybackTime(0);
+                        setIsPlayingAudio(false);
                         await startVoiceRecording();
                     }
                 }}
@@ -163,7 +188,12 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                     </div>
                 ) : isVoiceReady ? (
                     <div className="flex items-center gap-3 w-full justify-between">
-                        <div className="text-sm font-mono tabular-nums">{formatDuration(recordingSeconds)}</div>
+                        <div className="text-sm font-mono tabular-nums">
+                            {isPlayingAudio && audioDuration > 0 && isFinite(audioDuration)
+                                ? formatPlaybackTime(currentPlaybackTime, audioDuration)
+                                : formatDuration(recordingSeconds)
+                            }
+                        </div>
                         <div className="flex items-center justify-center gap-2">
                             <span
                                 className="inline-flex p-1 rounded hover:bg-white/10 active:bg-white/20 transition-colors"
@@ -196,7 +226,32 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                                 id="voice-preview-audio"
                                 src={audioUrl}
                                 style={{ display: 'none' }}
-                                onEnded={() => setIsPlayingAudio(false)}
+                                onLoadedMetadata={(e) => {
+                                    const audio = e.target as HTMLAudioElement;
+                                    if (audio.duration && isFinite(audio.duration) && !isNaN(audio.duration)) {
+                                        setAudioDuration(audio.duration);
+                                    } else {
+                                        setAudioDuration(recordingSeconds);
+                                    }
+                                }}
+                                onLoadedData={(e) => {
+                                    const audio = e.target as HTMLAudioElement;
+                                    if (audioDuration === 0 || !isFinite(audioDuration)) {
+                                        if (audio.duration && isFinite(audio.duration) && !isNaN(audio.duration)) {
+                                            setAudioDuration(audio.duration);
+                                        } else {
+                                            setAudioDuration(recordingSeconds);
+                                        }
+                                    }
+                                }}
+                                onTimeUpdate={(e) => {
+                                    const audio = e.target as HTMLAudioElement;
+                                    setCurrentPlaybackTime(audio.currentTime);
+                                }}
+                                onEnded={() => {
+                                    setIsPlayingAudio(false);
+                                    setCurrentPlaybackTime(0);
+                                }}
                             />
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-5 fill-white"><path d="M9 12.75 11.25 15 15 9.75"/></svg>
                             <span
@@ -206,6 +261,9 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                                     if (isUploading) return;
                                     setIsVoiceReady(false);
                                     setRecordingSeconds(0);
+                                    setAudioDuration(0);
+                                    setCurrentPlaybackTime(0);
+                                    setIsPlayingAudio(false);
                                 }}
                                 role="button"
                                 aria-label="Discard recording"
