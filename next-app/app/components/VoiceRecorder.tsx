@@ -34,6 +34,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
         const [isPlayingAudio, setIsPlayingAudio] = useState(false);
         const [audioDuration, setAudioDuration] = useState(0);
         const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
+        const [recordingMimeType, setRecordingMimeType] = useState<string>('audio/webm');
 
         useEffect(() => {
             onVoiceReadyChange?.(isVoiceReady);
@@ -43,13 +44,40 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
             onRecordingChange?.(isRecording);
         }, [isRecording, onRecordingChange]);
 
+        const getSupportedMimeType = (): string => {
+            const types = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/mp4',
+                'audio/mp4;codecs=aac',
+                'audio/ogg;codecs=opus',
+                'audio/wav'
+            ];
+            
+            for (const type of types) {
+                if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+                    return type;
+                }
+            }
+            return 'audio/webm'; // fallback
+        };
+
         const startVoiceRecording = async (): Promise<void> => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder.current = new window.MediaRecorder(stream);
+            const mimeType = getSupportedMimeType();
+            setRecordingMimeType(mimeType);
+            
+            try {
+                mediaRecorder.current = new window.MediaRecorder(stream, { mimeType });
+            } catch (error) {
+                console.warn('Failed to create MediaRecorder with specified mimeType, using default:', error);
+                mediaRecorder.current = new window.MediaRecorder(stream);
+            }
+            
             mediaRecorder.current.ondataavailable = (e) => chunks.current.push(e.data);
             mediaRecorder.current.onstart = (_) => setIsRecording(true)
             mediaRecorder.current.onstop = () => {
-                const blob = new Blob(chunks.current, { type: "audio/webm" });
+                const blob = new Blob(chunks.current, { type: recordingMimeType });
                 setAudioUrl(URL.createObjectURL(blob));
                 chunks.current = [];
                 stream.getTracks().forEach((track) => track.stop());
@@ -92,6 +120,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                 setAudioDuration(0);
                 setCurrentPlaybackTime(0);
                 setIsPlayingAudio(false);
+                setRecordingMimeType('audio/webm');
             } catch (e) {
                 console.log("Error with uploading audio: ", e);
             }
@@ -180,6 +209,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                         setAudioDuration(0);
                         setCurrentPlaybackTime(0);
                         setIsPlayingAudio(false);
+                        setRecordingMimeType('audio/webm');
                         await startVoiceRecording();
                     }
                 }}
@@ -287,6 +317,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                                     setAudioDuration(0);
                                     setCurrentPlaybackTime(0);
                                     setIsPlayingAudio(false);
+                                    setRecordingMimeType('audio/webm');
                                 }}
                                 role="button"
                                 aria-label="Discard recording"
