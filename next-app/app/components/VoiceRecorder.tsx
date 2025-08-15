@@ -116,10 +116,10 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                     isUploading
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed p-2"
                         : isRecording
-                            ? "bg-red-600 hover:bg-red-700 text-white pl-3 pr-4 py-2 w-52 sm:w-64"
+                            ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white pl-3 pr-4 py-3 w-52 sm:w-64 shadow-lg shadow-red-500/25"
                             : isVoiceReady
-                                ? "bg-red-600 text-white pl-3 pr-4 py-2 w-52 sm:w-64 cursor-default"
-                                : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2"
+                                ? "bg-gradient-to-r from-red-600 to-red-700 text-white pl-3 pr-4 py-3 w-52 sm:w-64 cursor-default shadow-lg shadow-red-500/25"
+                                : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 hover:shadow-md transition-shadow"
                 }`}
                 onClick={async () => {
                     if (isUploading) return;
@@ -141,17 +141,24 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
                 title={isRecording ? "Stop recording" : isVoiceReady ? "Voice recording ready" : "Start voice recording"}
             >
                 {isRecording ? (
-                    <div className="flex items-center gap-3 w-full justify-between">
-                        <div className="flex items-end gap-1" aria-hidden>
-                            <span className="w-1.5 h-4 bg-white/80 rounded-sm recording-wave" style={{ animationDelay: "0ms" }}></span>
-                            <span className="w-1.5 h-6 bg-white/80 rounded-sm recording-wave" style={{ animationDelay: "150ms" }}></span>
-                            <span className="w-1.5 h-8 bg-white/80 rounded-sm recording-wave" style={{ animationDelay: "300ms" }}></span>
-                            <span className="w-1.5 h-6 bg-white/80 rounded-sm recording-wave" style={{ animationDelay: "450ms" }}></span>
-                            <span className="w-1.5 h-4 bg-white/80 rounded-sm recording-wave" style={{ animationDelay: "600ms" }}></span>
+                    <div className="flex items-center gap-3 w-full justify-between recording-container">
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full recording-indicator mr-3"></div>
+                            </div>
+                            <div className="flex items-end gap-1" aria-hidden>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                                <span className="w-1 bg-white/90 recording-wave"></span>
+                            </div>
                         </div>
-                        <div className="text-sm font-mono tabular-nums">{formatDuration(recordingSeconds)}</div>
+                        <div className="text-sm font-mono tabular-nums font-medium">{formatDuration(recordingSeconds)}</div>
                         <div className="flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-5 fill-white"><rect x="7" y="7" width="10" height="10" rx="1.5"></rect></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-5 fill-white/90 hover:fill-white transition-colors"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>
                         </div>
                     </div>
                 ) : isVoiceReady ? (
