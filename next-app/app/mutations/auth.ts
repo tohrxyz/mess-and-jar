@@ -1,25 +1,29 @@
 export type AuthResponse = {
-    success: boolean;
-    message: string;
+  success: boolean
+  message: string
 }
 
-export const mutateAuth = async (username: string, password: string, identity_pubkey: string): Promise<AuthResponse> => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL;
-    const response = await fetch(`${apiUrl}/auth`, {
-        method: "POST",
-        body: `username=${username}&password=${password}&identity_pubkey=${identity_pubkey}`,
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-    });
-    if (!response.ok) {
-        return {
-            success: false,
-            message: response.statusText,
-        }
-    }
+export const mutateAuth = async (
+  username: string,
+  password: string,
+  identity_pubkey: string,
+): Promise<AuthResponse> => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL
+  const response = await fetch(`${apiUrl}/auth`, {
+    method: 'POST',
+    body: `username=${username}&password=${password}&identity_pubkey=${identity_pubkey}`,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+  if (!response.ok) {
     return {
-        success: true,
-        message: response.statusText,
+      success: false,
+      message: response.statusText,
     }
+  }
+  return {
+    success: true,
+    message: response.statusText,
+  }
 }

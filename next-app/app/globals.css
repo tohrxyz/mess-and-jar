@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,48 +122,60 @@
 }
 
 @keyframes recordingWave {
-  0%, 100% { 
-    transform: scaleY(0.3) scaleX(1); 
-    opacity: 0.6; 
+  0%,
+  100% {
+    transform: scaleY(0.3) scaleX(1);
+    opacity: 0.6;
   }
-  25% { 
-    transform: scaleY(0.8) scaleX(1.1); 
-    opacity: 0.9; 
+  25% {
+    transform: scaleY(0.8) scaleX(1.1);
+    opacity: 0.9;
   }
-  50% { 
-    transform: scaleY(1.2) scaleX(1); 
-    opacity: 1; 
+  50% {
+    transform: scaleY(1.2) scaleX(1);
+    opacity: 1;
   }
-  75% { 
-    transform: scaleY(0.6) scaleX(0.95); 
-    opacity: 0.8; 
+  75% {
+    transform: scaleY(0.6) scaleX(0.95);
+    opacity: 0.8;
   }
 }
 
 @keyframes recordingPulse {
-  0%, 100% { 
-    opacity: 0.4; 
+  0%,
+  100% {
+    opacity: 0.4;
     transform: scale(1);
   }
-  50% { 
-    opacity: 1; 
+  50% {
+    opacity: 1;
     transform: scale(1.05);
   }
 }
 
 @keyframes recordingGlow {
-  0%, 100% { 
-    box-shadow: 0 0 5px rgba(239, 68, 68, 0.3), 0 0 10px rgba(239, 68, 68, 0.1);
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px rgba(239, 68, 68, 0.3),
+      0 0 10px rgba(239, 68, 68, 0.1);
   }
-  50% { 
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 0 25px rgba(239, 68, 68, 0.2);
+  50% {
+    box-shadow:
+      0 0 15px rgba(239, 68, 68, 0.6),
+      0 0 25px rgba(239, 68, 68, 0.2);
   }
 }
 
 .recording-wave {
   animation: recordingWave 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   transform-origin: center bottom;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.9) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
   border-radius: 2px;
   transition: all 0.3s ease;
 }

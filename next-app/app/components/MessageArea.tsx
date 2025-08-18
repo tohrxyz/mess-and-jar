@@ -1,80 +1,67 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Message } from "../types";
-import { useRoomContext } from "../chat/[room_id]/RoomContext";
-import { scrollToBottom } from "../lib/scroll-util";
-import { MessageBubble } from "./MessageBubble";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRoomContext } from '../chat/[room_id]/RoomContext'
+import { scrollToBottom } from '../lib/scroll-util'
+import { Message } from '../types'
+import { MessageBubble } from './MessageBubble'
 
 interface MessageAreaProps {
-  messages: Message[];
-  currentUsername: string;
+  messages: Message[]
+  currentUsername: string
 }
 
-export default function MessageArea({
-  messages,
-  currentUsername,
-}: MessageAreaProps) {
-  const { messageAreaScrollRef } = useRoomContext();
-  const isScrolledManuallyRef = useRef(false);
-  const isTouchedBottomRef = useRef(false);
-  const isInitialRenderRef = useRef(true);
-  const previousMessageCountRef = useRef(0);
-  const [modalImage, setModalImage] = useState<string | null>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+export default function MessageArea({ messages, currentUsername }: MessageAreaProps) {
+  const { messageAreaScrollRef } = useRoomContext()
+  const isScrolledManuallyRef = useRef(false)
+  const isTouchedBottomRef = useRef(false)
+  const isInitialRenderRef = useRef(true)
+  const previousMessageCountRef = useRef(0)
+  const [modalImage, setModalImage] = useState<string | null>(null)
+  const [showScrollButton, setShowScrollButton] = useState(false)
 
   // Set initial scroll position to bottom without animation
   useEffect(() => {
-    if (
-      isInitialRenderRef.current &&
-      messageAreaScrollRef.current &&
-      messages.length > 0
-    ) {
+    if (isInitialRenderRef.current && messageAreaScrollRef.current && messages.length > 0) {
       setTimeout(() => {
         messageAreaScrollRef!.current!.scrollTo({
           top: 1e9,
-          behavior: "instant",
-        });
-        isInitialRenderRef.current = false;
-        previousMessageCountRef.current = messages.length;
-      }, 150);
+          behavior: 'instant',
+        })
+        isInitialRenderRef.current = false
+        previousMessageCountRef.current = messages.length
+      }, 150)
     }
-  }, [messages.length]);
+  }, [messages.length])
 
   // Handle auto-scroll for new messages
   useEffect(() => {
-    if (
-      !isInitialRenderRef.current &&
-      messages.length > previousMessageCountRef.current
-    ) {
+    if (!isInitialRenderRef.current && messages.length > previousMessageCountRef.current) {
       if (!isScrolledManuallyRef.current || isTouchedBottomRef.current) {
-        scrollToBottom(messageAreaScrollRef);
-        isScrolledManuallyRef.current = false;
+        scrollToBottom(messageAreaScrollRef)
+        isScrolledManuallyRef.current = false
       }
-      previousMessageCountRef.current = messages.length;
+      previousMessageCountRef.current = messages.length
     }
-  }, [messages]);
+  }, [messages])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModalImage(null);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+      if (e.key === 'Escape') setModalImage(null)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleScrollToBottom = () => {
-    scrollToBottom(messageAreaScrollRef);
-    isScrolledManuallyRef.current = false;
-    setShowScrollButton(false);
-  };
+    scrollToBottom(messageAreaScrollRef)
+    isScrolledManuallyRef.current = false
+    setShowScrollButton(false)
+  }
 
   const handleSetModalImageCallback = useCallback((image: string | null) => {
-    setModalImage(image);
-  }, []);
+    setModalImage(image)
+  }, [])
 
-  const sortedMessages = useMemo(
-    () => messages?.sort((a, b) => Number(a.date) - Number(b.date)),
-    [messages],
-  );
+  const sortedMessages = useMemo(() => messages?.sort((a, b) => Number(a.date) - Number(b.date)), [messages])
 
   return (
     <>
@@ -84,28 +71,27 @@ export default function MessageArea({
           ref={messageAreaScrollRef}
           onScroll={(e) => {
             if (!isScrolledManuallyRef.current) {
-              isScrolledManuallyRef.current = true;
+              isScrolledManuallyRef.current = true
             }
 
             const isAtBottom =
-              (messageAreaScrollRef.current?.scrollTop ?? 0) +
-                (messageAreaScrollRef.current?.clientHeight ?? 0) >=
-              (messageAreaScrollRef.current?.scrollHeight ?? 0) - 20;
+              (messageAreaScrollRef.current?.scrollTop ?? 0) + (messageAreaScrollRef.current?.clientHeight ?? 0) >=
+              (messageAreaScrollRef.current?.scrollHeight ?? 0) - 20
 
             if (isAtBottom) {
-              isTouchedBottomRef.current = true;
-              isScrolledManuallyRef.current = false;
-              setShowScrollButton(false);
+              isTouchedBottomRef.current = true
+              isScrolledManuallyRef.current = false
+              setShowScrollButton(false)
             } else {
               if (isTouchedBottomRef.current) {
-                isTouchedBottomRef.current = false;
+                isTouchedBottomRef.current = false
               }
-              setShowScrollButton(true);
+              setShowScrollButton(true)
             }
           }}
         >
           {sortedMessages.map((message, index) => {
-            const isCurrentUser = message.username === currentUsername;
+            const isCurrentUser = message.username === currentUsername
             return (
               <MessageBubble
                 key={index}
@@ -114,7 +100,7 @@ export default function MessageArea({
                 onImageClick={handleSetModalImageCallback}
                 messageIndex={index}
               />
-            );
+            )
           })}
         </div>
 
@@ -132,11 +118,7 @@ export default function MessageArea({
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </button>
         )}
@@ -151,8 +133,8 @@ export default function MessageArea({
             aria-label="Close image view"
             className="absolute top-4 right-4 z-10 p-2 bg-gray-800/50 text-white rounded-full hover:bg-gray-700/70 transition-colors"
             onClick={(e) => {
-              e.stopPropagation();
-              setModalImage(null);
+              e.stopPropagation()
+              setModalImage(null)
             }}
           >
             <svg
@@ -162,12 +144,7 @@ export default function MessageArea({
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
           <img
@@ -178,5 +155,5 @@ export default function MessageArea({
         </div>
       )}
     </>
-  );
+  )
 }
