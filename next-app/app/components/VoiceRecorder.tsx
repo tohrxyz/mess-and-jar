@@ -203,7 +203,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
       <button
         className={`rounded-lg transition-all duration-300 flex items-center ${isMicDenied && 'cursor-not-allowed bg-red-900 hover:bg-red-900'} ${
           isUploading
-            ? 'bg-gray-600 text-gray-400 cursor-not-allowed p-2'
+            ? 'bg-gray-600 text-gray-400 cursor-not-allowed p-2 w-full'
             : isRecording
               ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white pl-3 pr-4 py-3 flex-1 sm:w-64 shadow-lg shadow-red-500/25'
               : isVoiceReady
