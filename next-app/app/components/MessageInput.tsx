@@ -103,6 +103,7 @@ export default function MessageInput() {
       signature: signature.signatureHex,
       identity_pubkey: userObj.identityKeypairHex.privateKeyHex,
     })
+    setInputMessage('')
     lastTimestampRef.current = Number(date)
 
     const response = await mutateSendMessage(
@@ -114,12 +115,12 @@ export default function MessageInput() {
     )
 
     if (response.success) {
-      setInputMessage('')
       await queryClient.invalidateQueries({ queryKey: ['messages', room?.id, lastTimestampRef.current] })
       scrollToBottom(messageAreaScrollRef)
       return null
     } else {
       // rollback
+      setInputMessage(msg)
       await deleteMessage(`${date}-${userObj.username}-${room?.id ?? 'general'}`)
       const latestTimestamp = await getLastTimestamp(room?.id ?? 'general')
       lastTimestampRef.current = latestTimestamp
