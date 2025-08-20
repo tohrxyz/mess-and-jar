@@ -197,7 +197,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     const imageElement = imageRef.current
     // Only observe if this is a media message (has image container)
     const isMediaMessage = Boolean(imageSrc) || isImagePlaceholder
-    if (!imageElement || !isMediaMessage) return
+    if (!imageElement || !isMediaMessage || mediaType === 'audio') return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -234,7 +234,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
       },
       {
         threshold: 0.1, // Trigger when 10% of the image is visible
-        rootMargin: '800px', // Start loading slightly before entering viewport
+        rootMargin: '400px', // Start loading slightly before entering viewport
       },
     )
 
@@ -431,7 +431,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                   preload="metadata"
                 ></video>
               ) : mediaType === 'audio' ? (
-                <audio src={imageSrc} controls className="w-full h-full rounded" preload="metadata"></audio>
+                <audio src={imageSrc} controls className="w-full h-full rounded"></audio>
               ) : null}
             </div>
           ) : isImagePlaceholder ? (
