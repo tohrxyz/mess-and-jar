@@ -115,7 +115,7 @@ export default function MessageInput() {
     )
 
     if (response.success) {
-      await queryClient.invalidateQueries({ queryKey: ['messages', room?.id, lastTimestampRef.current] })
+      void queryClient.invalidateQueries({ queryKey: ['messages', room?.id, lastTimestampRef.current] })
       scrollToBottom(messageAreaScrollRef)
       return null
     } else {
