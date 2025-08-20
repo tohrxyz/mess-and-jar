@@ -321,7 +321,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
 
           if (isMounted) {
             await saveImage({ id: fileId, timestamp: Date.now(), blob })
-            await deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
+            void deleteOld(MAX_IMAGES_IN_CACHED_INDEX_DB)
             setImageSrc(url)
             setIsImagePlaceholder(false)
           }
