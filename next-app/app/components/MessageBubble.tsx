@@ -7,6 +7,7 @@ import { extractIdFromImageSource, formatFileSize, getFileExtensionFromMediaType
 import { getMediaTypeFromMessage } from '../lib/recognizeMedia'
 import { mutateDownloadMedia } from '../mutations/message'
 import { MediaType, Message } from '../types'
+import { AudioComponent } from './AudioComponent'
 
 interface MessageItemProps {
   message: Message
@@ -431,7 +432,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                   preload="metadata"
                 ></video>
               ) : mediaType === 'audio' ? (
-                <audio src={imageSrc} controls className="w-full h-full rounded"></audio>
+                <AudioComponent audioSrc={imageSrc} />
               ) : null}
             </div>
           ) : isImagePlaceholder ? (
