@@ -30,3 +30,26 @@ export function getFileExtensionFromMediaType(val: MediaType) {
     return null
   }
 }
+
+export const formatPlaybackTime = (current: number, total: number): string => {
+  const formatTime = (time: number) => {
+    if (!isFinite(time) || isNaN(time) || time < 0) {
+      return '00:00'
+    }
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
+
+  if (!isFinite(total) || isNaN(total) || total <= 0) {
+    return formatTime(current)
+  }
+
+  return `${formatTime(current)} / ${formatTime(total)}`
+}
+
+export const formatDuration = (totalSeconds: number): string => {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}

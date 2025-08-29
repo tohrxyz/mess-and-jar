@@ -6,6 +6,7 @@ import { useRoomContext } from '../chat/[room_id]/RoomContext'
 import { MESSAGE_CODES } from '../constants/messageCodes'
 import { deleteOld, MAX_IMAGES_IN_CACHED_INDEX_DB, saveImage } from '../indexdb/media-db'
 import { cryptoKeyFromRawExport, encryptSubtleClient, getNewIV } from '../lib/crypto-client'
+import { formatDuration, formatPlaybackTime } from '../lib/format-util'
 import { mutateUploadMedia } from '../mutations/message'
 
 export interface VoiceRecorderHandle {
@@ -148,29 +149,6 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
       }, 1000)
       return () => clearInterval(intervalId)
     }, [isRecording])
-
-    const formatDuration = (totalSeconds: number): string => {
-      const minutes = Math.floor(totalSeconds / 60)
-      const seconds = totalSeconds % 60
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-    }
-
-    const formatPlaybackTime = (current: number, total: number): string => {
-      const formatTime = (time: number) => {
-        if (!isFinite(time) || isNaN(time) || time < 0) {
-          return '00:00'
-        }
-        const minutes = Math.floor(time / 60)
-        const seconds = Math.floor(time % 60)
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-      }
-
-      if (!isFinite(total) || isNaN(total) || total <= 0) {
-        return formatTime(current)
-      }
-
-      return `${formatTime(current)} / ${formatTime(total)}`
-    }
 
     useImperativeHandle(ref, () => ({
       isVoiceReady,
