@@ -16,6 +16,8 @@ interface MessageItemProps {
   messageIndex: number
 }
 
+const MAX_MESSAGE_LEN = 500
+
 export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messageIndex }: MessageItemProps) => {
   const { room, openInfoMenuId, setOpenInfoMenuId } = useRoomContext()
   const [displayText, setDisplayText] = useState<string>(message.msg.startsWith('<<<$#!') ? '' : message.msg)
@@ -39,10 +41,34 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
   const messageId = `${messageIndex}-${message.date}`
   const showInfoMenu = openInfoMenuId === messageId
 
-  const renderMessageWithLinks = (text: string) => {
-    // URL regex pattern to detect URLs
+  const [isMessageExpanded, setExpandMessage] = useState(false)
+
+  const renderMessageWithLinks = (text: string, expanded = false) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g
     const parts = text.split(urlRegex)
+    const textLen = text.length
+
+    const trimmedLenText = text.slice(0, MAX_MESSAGE_LEN)
+    const trimmedParts = trimmedLenText.split(urlRegex)
+
+    if (!expanded) {
+      let toReturn = trimmedParts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          return (
+            <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+              {part}
+            </a>
+          )
+        } else {
+          return part
+        }
+      })
+      if (textLen > MAX_MESSAGE_LEN) {
+        return [...toReturn, (
+          <button key={-1} className='cursor-pointer font-bold' onClick={() => setExpandMessage((prev) => !prev)}>Show More</button>
+        )]
+      }
+    }
 
     return parts.map((part, index) => {
       if (urlRegex.test(part)) {
@@ -449,7 +475,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
               className={`select-none ${displayText !== '' && !displayText.includes('Unable to decrypt') ? '' : 'text-gray-400'} break-all`}
             >
               {displayText !== ''
-                ? renderMessageWithLinks(displayText)
+                ? renderMessageWithLinks(displayText, isMessageExpanded)
                 : message.msg.startsWith('<<<$#!')
                   ? 'Loading media...'
                   : 'Unable to decrypt message'}
