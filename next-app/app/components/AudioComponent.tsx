@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
+import { memo } from 'react'
 
-export const AudioComponent = ({ audioSrc }: { audioSrc: string }) => {
+const AudioComponent = memo(function AudioComponent({ audioSrc }: { audioSrc: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [stateIsPlaying, setStatePlaying] = useState(false)
 
@@ -80,4 +81,6 @@ export const AudioComponent = ({ audioSrc }: { audioSrc: string }) => {
       <audio src={audioSrc} className="hidden" ref={audioRef} preload="auto"></audio>
     </div>
   )
-}
+})
+
+export default AudioComponent

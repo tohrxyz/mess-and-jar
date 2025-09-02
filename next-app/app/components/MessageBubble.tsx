@@ -7,7 +7,7 @@ import { extractIdFromImageSource, formatFileSize, getFileExtensionFromMediaType
 import { getMediaTypeFromMessage } from '../lib/recognizeMedia'
 import { mutateDownloadMedia } from '../mutations/message'
 import { MediaType, Message } from '../types'
-import { AudioComponent } from './AudioComponent'
+import AudioComponent  from './AudioComponent'
 
 interface MessageItemProps {
   message: Message
