@@ -86,6 +86,12 @@ func RoomEndpoint(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		if string([]byte(roomDataLoaded.Id)) == "" {
+			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot get room:", roomData.Id, "- error:", " room_id not found")
+			http.Error(w, "Cannot get room: ", http.StatusNotFound)
+			return
+		}
+
 		serializedRoom, err := lib.ToJson(roomDataLoaded)
 		if err != nil {
 			fmt.Println(time.Now().Format("2006-01-02 15:04:05"), "[ERROR] roomEndpoint: Cannot serialize room data for room:", roomData.Id, "- error:", err)
