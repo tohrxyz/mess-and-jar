@@ -15,8 +15,40 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Mess-and-jar-chat',
-  description: 'Chat app',
+  metadataBase: new URL('https://chat.tohr.xyz'), // change to your real domain
+  title: 'Encrypted Chat',
+  description: 'Encrypted cloud chat with rooms',
+  keywords: ['chat', 'encrypted', 'secure messaging', 'cloud chat', 'chat rooms'],
+  authors: [{ name: 'tohrxyz', url: 'https://github.com/tohrxyz' }],
+  icons: {
+    icon: '/logo.jpg',
+    shortcut: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
+  openGraph: {
+    title: 'Encrypted Chat',
+    description: 'Encrypted chat with cloud rooms',
+    url: 'https://chat.tohr.xyz',
+    siteName: 'Encrypted Chat',
+    images: [
+      {
+        url: '/logo.jpg',
+        width: 512,
+        height: 512,
+        alt: 'Chat App Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Chat – Encrypted Cloud Chat',
+    description: 'Join secure chat rooms with client-side encryption.',
+    images: ['/logo.jpg'],
+    creator: '@tohrxyz',
+  },
+  category: 'communication',
 }
 
 export const viewport: Viewport = {
@@ -33,6 +65,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/logo.jpg" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900`}>
         {/* Prevent errors on browsers (e.g., Brave iOS) where window.ethereum is undefined */}
         <Script id="ethereum-stub" strategy="beforeInteractive">
