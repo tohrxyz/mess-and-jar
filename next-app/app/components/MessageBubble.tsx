@@ -7,7 +7,7 @@ import { extractIdFromImageSource, formatFileSize, getFileExtensionFromMediaType
 import { getMediaTypeFromMessage } from '../lib/recognizeMedia'
 import { mutateDownloadMedia } from '../mutations/message'
 import { MediaType, Message } from '../types'
-import AudioComponent  from './AudioComponent'
+import AudioComponent from './AudioComponent'
 
 interface MessageItemProps {
   message: Message
@@ -55,7 +55,13 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
       let toReturn = trimmedParts.map((part, index) => {
         if (urlRegex.test(part)) {
           return (
-            <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:no-underline"
+            >
               {part}
             </a>
           )
@@ -64,9 +70,12 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
         }
       })
       if (textLen > MAX_MESSAGE_LEN) {
-        return [...toReturn, (
-          <button key={-1} className='cursor-pointer font-bold' onClick={() => setExpandMessage((prev) => !prev)}>Show More</button>
-        )]
+        return [
+          ...toReturn,
+          <button key={-1} className="cursor-pointer font-bold" onClick={() => setExpandMessage((prev) => !prev)}>
+            Show More
+          </button>,
+        ]
       }
     }
 

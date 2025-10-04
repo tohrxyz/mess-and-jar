@@ -13,8 +13,10 @@ import {
   verifyMessageAgainstPubkeyHex,
 } from '@/app/lib/crypto-client'
 import { clearStorage, getFromStorage, saveToStorage } from '@/app/lib/localStorage'
+import { parseHashFromUrl } from '@/app/lib/parse'
+import { roomOperation } from '@/app/mutations/room'
 import { useMessages } from '@/app/queries/messages'
-import { Message, Room } from '@/app/types'
+import { HashParams, Message, Room, RoomBackendMethod, RoomGetResponse } from '@/app/types'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useRoomContext } from './RoomContext'
@@ -32,12 +34,22 @@ export default function RoomPage() {
     setUser,
     setRoom,
   } = useRoomContext()
+  const [hashParams, setHashParams] = useState<null | HashParams>(null)
 
   const messagesLocal = useMessagesLocal(room_id as string)
   const [messages, setMessages] = useState<Message[]>([])
   const decryptedMessageIdsRef = useRef<{
     [key: string]: Message
   }>({})
+
+  useEffect(() => {
+    const update = () => {
+      setHashParams(parseHashFromUrl(window.location.hash))
+    }
+    update()
+    window.addEventListener('hashchange', update)
+    return () => window.removeEventListener('hashchange', update)
+  }, [])
 
   useEffect(() => {
     const doFn = async () => {
@@ -151,7 +163,33 @@ export default function RoomPage() {
         if (rooms) {
           const parsedRooms = JSON.parse(rooms)
           const room = parsedRooms.find((room: Room) => room.id === room_id)
-          setRoom(room)
+          if (room) {
+            setRoom(room)
+          } else {
+            const roomResponse = (await roomOperation({
+              id: room_id as string,
+              method: RoomBackendMethod.RoomGet,
+            })) as RoomGetResponse
+
+            if (!hashParams || !hashParams['password']) throw Error('No password from url hash') // todo: 404 page
+
+            const key = await cryptoKeyFromRawExport(hashParams['password'])
+            const _roomEncrypted = roomResponse.room.name?.split('_')
+            const iv = new Uint8Array(hexToArrayBuffer(_roomEncrypted[0]))
+            const encName = _roomEncrypted[1]
+
+            const decryptedRoomNameBuffer = await decryptSubtleClient(encName, { iv, key })
+            const decryptedRoomName = new TextDecoder().decode(decryptedRoomNameBuffer)
+            const room: Room = {
+              id: room_id as string,
+              name: decryptedRoomName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
+              password: hashParams['password'],
+            }
+
+            let roomsToCommit: Room[] = parsedRooms.concat(room)
+            saveToStorage(LOCAL_STORAGE_KEYS.ROOMS, JSON.stringify(roomsToCommit))
+            window.location.replace(`/chat/${room_id}`)
+          }
         }
         const timestamp = await getLastTimestamp(room_id as string)
         lastTimestampRef.current = timestamp
@@ -167,7 +205,7 @@ export default function RoomPage() {
       }
     }
     doFn()
-  }, [room_id])
+  }, [room_id, hashParams?.password])
 
   useEffect(() => {
     if (room_id) {

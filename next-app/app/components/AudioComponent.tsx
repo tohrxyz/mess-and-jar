@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react'
-import { memo } from 'react'
+import { memo, useRef, useState } from 'react'
 
 const AudioComponent = memo(function AudioComponent({ audioSrc }: { audioSrc: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
