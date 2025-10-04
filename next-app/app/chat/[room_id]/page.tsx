@@ -171,9 +171,19 @@ export default function RoomPage() {
               method: RoomBackendMethod.RoomGet,
             })) as RoomGetResponse
 
-            if (!hashParams || !hashParams['password']) throw Error('No password from url hash') // todo: 404 page
+            if (!roomResponse || !roomResponse.success) {
+              router.replace(`/chat/not-found?room_id=${room_id}`)
+              return
+            }
 
-            const key = await cryptoKeyFromRawExport(hashParams['password'])
+            let key: CryptoKey
+            try {
+              key = await cryptoKeyFromRawExport(hashParams?.['password'] ?? '')
+            } catch (e) {
+              router.replace(`/chat/not-found?reason=bad_password&room_id=${room_id}`)
+              console.warn(e)
+              return
+            }
             const _roomEncrypted = roomResponse.room.name?.split('_')
             const iv = new Uint8Array(hexToArrayBuffer(_roomEncrypted[0]))
             const encName = _roomEncrypted[1]
@@ -183,7 +193,7 @@ export default function RoomPage() {
             const room: Room = {
               id: room_id as string,
               name: decryptedRoomName ?? `unknown ${Math.random().toString(36).substring(2, 15)}`,
-              password: hashParams['password'],
+              password: hashParams?.['password'],
             }
 
             let roomsToCommit: Room[] = parsedRooms.concat(room)
@@ -204,7 +214,8 @@ export default function RoomPage() {
         }
       }
     }
-    doFn()
+
+    doFn().catch((e) => console.warn(e))
   }, [room_id, hashParams?.password])
 
   useEffect(() => {

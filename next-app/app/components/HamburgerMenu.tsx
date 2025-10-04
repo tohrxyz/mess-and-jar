@@ -458,7 +458,7 @@ export default function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
         {/* Rooms List */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
-            <div className="flex items-center justify-between items-center mb-3">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-300">Your Rooms</h3>
               <div>
                 <button
