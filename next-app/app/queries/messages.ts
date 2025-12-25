@@ -16,7 +16,7 @@ export const getMessages = async (roomId: string, timestamp: number | null): Pro
     room: m.room_id,
     username: m.username,
     msg: m.msg,
-    identityPubkey: m.identity_pubkey ?? undefined,
+    identity_pubkey: m.identity_pubkey ?? undefined,
     signature: m.signature ?? undefined,
   }))
 }
