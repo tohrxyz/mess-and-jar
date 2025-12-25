@@ -1,10 +1,12 @@
 import { DurableObject } from 'cloudflare:workers';
 import { createUser, editUser, getUser } from './lib/auth';
 import { createRoom, getRoom, updateRoom } from './lib/room';
+import { getMessagesAfterTimestamp, updateMessage, writeMessage } from './lib/message';
 import { ValidRoomOps } from './types/room';
 
 export class Chat extends DurableObject<Env> {
 	constructor(ctx: DurableObjectState, env: Env) {
+		super(ctx, env);
 		ctx.storage.sql.exec(`
 			CREATE TABLE IF NOT EXISTS users (
 				username TEXT PRIMARY KEY,
@@ -19,7 +21,17 @@ export class Chat extends DurableObject<Env> {
 				password TEXT NOT NULL
 			)
 		`);
-		super(ctx, env);
+		ctx.storage.sql.exec(`
+			CREATE TABLE IF NOT EXISTS messages (
+				timestamp INTEGER NOT NULL,
+				room_id TEXT NOT NULL,
+				username TEXT NOT NULL,
+				msg TEXT NOT NULL,
+				identity_pubkey TEXT,
+				signature TEXT,
+				PRIMARY KEY (room_id, timestamp)
+			)
+		`);
 	}
 	async sayHello(name: string): Promise<string> {
 		return `Hello, ${name}!`;
@@ -83,6 +95,29 @@ export class Chat extends DurableObject<Env> {
 
 	async updateRoom(id: string, name: string) {
 		updateRoom(id, name, this.ctx.storage.sql);
+	}
+
+	async writeMessage(
+		timestamp: number,
+		room_id: string,
+		username: string,
+		msg: string,
+		identity_pubkey: string | null,
+		signature: string | null,
+	) {
+		writeMessage(timestamp, room_id, username, msg, identity_pubkey, signature, this.ctx.storage.sql);
+	}
+
+	async getMessagesAfterTimestamp(room_id: string, timestamp: number) {
+		return getMessagesAfterTimestamp(room_id, timestamp, this.ctx.storage.sql);
+	}
+
+	async updateMessage(room_id: string, timestamp: number, newContent: string) {
+		updateMessage(room_id, timestamp, newContent, this.ctx.storage.sql);
+	}
+
+	async getUser(username: string) {
+		return getUser(username, this.ctx.storage.sql);
 	}
 }
 
@@ -250,6 +285,152 @@ async function handleRoom(request: Request, stub: DurableObjectStub<Chat>) {
 	}
 }
 
+async function handleSendMessage(request: Request, stub: DurableObjectStub<Chat>) {
+	requirePOST(request);
+	const formData = await request.formData();
+
+	const room = formData.get('room')?.toString();
+	const username = formData.get('username')?.toString();
+	const password = formData.get('password')?.toString();
+	const msg = formData.get('msg')?.toString();
+	const signature = formData.get('signature')?.toString() ?? null;
+	const dateStr = formData.get('date')?.toString();
+
+	if (!room || !username || !password || !msg || !dateStr) {
+		return withCorsHeaders(
+			Response.json({
+				status: 400,
+				error: 'Must specify room, username, password, msg and date',
+			}),
+		);
+	}
+
+	const timestamp = parseInt(dateStr, 10);
+	if (isNaN(timestamp)) {
+		return withCorsHeaders(
+			Response.json({
+				status: 400,
+				error: 'Invalid date format',
+			}),
+		);
+	}
+
+	try {
+		const user = await stub.getUser(username);
+		console.log({user})
+		if (!user) {
+			return withCorsHeaders(
+				Response.json({
+					status: 404,
+					error: 'User not found',
+				}),
+			);
+		}
+		if (user.password !== password) {
+			return withCorsHeaders(
+				Response.json({
+					status: 401,
+					error: 'Wrong password',
+				}),
+			);
+		}
+
+		await stub.writeMessage(timestamp, room, username, msg, user.identity_pubkey ?? null, signature);
+		return withCorsHeaders(
+			Response.json({
+				status: 200,
+				message: 'Message sent',
+			}),
+		);
+	} catch (error) {
+		return withCorsHeaders(
+			Response.json({
+				status: 500,
+				error: "Can't save your message",
+			}),
+		);
+	}
+}
+
+async function handleEditMessage(request: Request, stub: DurableObjectStub<Chat>) {
+	requirePOST(request);
+	const formData = await request.formData();
+
+	const room = formData.get('room')?.toString();
+	const timestampStr = formData.get('timestamp')?.toString();
+	const editedContent = formData.get('edited_content')?.toString();
+
+	if (!room || !timestampStr || !editedContent) {
+		return withCorsHeaders(
+			Response.json({
+				status: 400,
+				error: 'room, timestamp and edited_content are required',
+			}),
+		);
+	}
+
+	const timestamp = parseInt(timestampStr, 10);
+	if (isNaN(timestamp)) {
+		return withCorsHeaders(
+			Response.json({
+				status: 400,
+				error: 'Invalid timestamp format',
+			}),
+		);
+	}
+
+	try {
+		await stub.updateMessage(room, timestamp, editedContent);
+		return withCorsHeaders(
+			Response.json({
+				status: 200,
+				message: 'Message updated',
+			}),
+		);
+	} catch (error) {
+		return withCorsHeaders(
+			Response.json({
+				status: 500,
+				error: "Can't update message",
+			}),
+		);
+	}
+}
+
+async function handleQueryMessages(request: Request, stub: DurableObjectStub<Chat>) {
+	const url = new URL(request.url);
+	const room = url.searchParams.get('room');
+	const timestampStr = url.searchParams.get('timestamp') ?? '0';
+
+	if (!room) {
+		return withCorsHeaders(
+			Response.json({
+				status: 400,
+				error: 'Room is required',
+			}),
+		);
+	}
+
+	const timestamp = parseInt(timestampStr, 10);
+
+	try {
+		const messages = await stub.getMessagesAfterTimestamp(room, timestamp);
+		return withCorsHeaders(
+			Response.json({
+				status: 200,
+				messages,
+			}),
+		);
+	} catch (error) {
+		return withCorsHeaders(
+			Response.json({
+				status: 500,
+				error: "Can't read the room history",
+			}),
+		);
+	}
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		if (request.method === 'OPTIONS') {
@@ -264,12 +445,18 @@ export default {
 		}
 		const url = new URL(request.url);
 		const { pathname } = url;
-		const stub = env.CHAT_DURABLE_OBJECT.getByName('chat');
+		const stub = env.CHAT_DURABLE_OBJECT.getByName('chat')
 		switch (pathname) {
 			case '/auth':
 				return handleAuth(request, stub);
 			case '/room':
 				return handleRoom(request, stub);
+			case '/send_message':
+				return handleSendMessage(request, stub);
+			case '/edit_message':
+				return handleEditMessage(request, stub);
+			case '/query_messages':
+				return handleQueryMessages(request, stub);
 			default:
 				const badRequest = {
 					status: 400,
