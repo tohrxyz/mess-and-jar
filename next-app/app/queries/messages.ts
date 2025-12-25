@@ -9,8 +9,16 @@ export const getMessages = async (roomId: string, timestamp: number | null): Pro
       'Content-Type': 'application/json',
     },
   })
-  const data = (await response.json()) as Message[]
-  return data
+  const data = await response.json()
+  // Map from backend format to frontend format
+  return (data.messages || []).map((m: { timestamp: number; room_id: string; username: string; msg: string; identity_pubkey: string | null; signature: string | null }) => ({
+    date: String(m.timestamp),
+    room: m.room_id,
+    username: m.username,
+    msg: m.msg,
+    identityPubkey: m.identity_pubkey ?? undefined,
+    signature: m.signature ?? undefined,
+  }))
 }
 
 export const useMessages = (roomId: string, timestamp: number | null) => {
@@ -18,11 +26,11 @@ export const useMessages = (roomId: string, timestamp: number | null) => {
     queryKey: ['messages', roomId, timestamp],
     queryFn: () => getMessages(roomId, timestamp),
     enabled: Boolean(roomId && timestamp !== null),
-    refetchInterval: 31000,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
     retry: 3,
-    staleTime: 32000,
+    staleTime: 4000,
   })
 }

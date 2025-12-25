@@ -8,7 +8,7 @@ export const mutateAuth = async (
   password: string,
   identity_pubkey: string,
 ): Promise<AuthResponse> => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_AUTH_URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL
   const response = await fetch(`${apiUrl}/auth`, {
     method: 'POST',
     body: `username=${username}&password=${password}&identity_pubkey=${identity_pubkey}`,
