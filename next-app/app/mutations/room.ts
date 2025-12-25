@@ -33,13 +33,13 @@ export const roomOperation = async ({
   }
 
   if (method === RoomBackendMethod.RoomGet) {
-    const roomData = await response.json()
+    const responseData = await response.json()
     return {
       success: true,
       message: 'Room retrieved successfully',
       room: {
-        ...roomData,
-        name: decodeURIComponent(roomData.name),
+        ...responseData.room,
+        name: decodeURIComponent(responseData.room.name),
       },
     }
   }
