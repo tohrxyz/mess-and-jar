@@ -24,7 +24,7 @@ export const mutateAuth = async (
   }
 
   const body = await response.json()
-  console.log({body})
+  console.log({ body })
   return {
     success: body.status,
     message: body.message ?? body.error,

@@ -11,14 +11,23 @@ export const getMessages = async (roomId: string, timestamp: number | null): Pro
   })
   const data = await response.json()
   // Map from backend format to frontend format
-  return (data.messages || []).map((m: { timestamp: number; room_id: string; username: string; msg: string; identity_pubkey: string | null; signature: string | null }) => ({
-    date: String(m.timestamp),
-    room: m.room_id,
-    username: m.username,
-    msg: m.msg,
-    identity_pubkey: m.identity_pubkey ?? undefined,
-    signature: m.signature ?? undefined,
-  }))
+  return (data.messages || []).map(
+    (m: {
+      timestamp: number
+      room_id: string
+      username: string
+      msg: string
+      identity_pubkey: string | null
+      signature: string | null
+    }) => ({
+      date: String(m.timestamp),
+      room: m.room_id,
+      username: m.username,
+      msg: m.msg,
+      identity_pubkey: m.identity_pubkey ?? undefined,
+      signature: m.signature ?? undefined,
+    }),
+  )
 }
 
 export const useMessages = (roomId: string, timestamp: number | null) => {
