@@ -78,31 +78,49 @@ export class Chat extends DurableObject<Env> {
 	}
 }
 
+const withCorsHeaders = (res: Response) => {
+	const response = res
+	response.headers.set('Access-Control-Allow-Origin', '*');
+	response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+	return response
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*', // or 'http://localhost:3000'
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    }
 		const url = new URL(request.url)
 		const { pathname } = url
 		const stub = env.CHAT_DURABLE_OBJECT.getByName("chat")
 		switch (pathname) {
 			case "/auth":
 				if (request.method !== "POST") {
-					return Response.json({
+					return withCorsHeaders(Response.json({
 						status: 400,
 						error: "Method not allowed"
-					})
+					}))
 				}
 				const formData = await request.formData()
 				const username = formData.get("username")?.toString()
 				const password = formData.get("password")?.toString()
 				const identityPubkey = formData.get("identity_pubkey")?.toString()
 				const authResponse = await stub.auth(username, password, identityPubkey)
-				return Response.json(await authResponse.json())
+				return withCorsHeaders(Response.json(await authResponse.json()))
 			default:
 				const badRequest = {
 					status: 400,
 					error: "This route does not exist"
 				}
-				return new Response(JSON.stringify(badRequest))
+				return withCorsHeaders(new Response(JSON.stringify(badRequest)))
 		}
 	},
 } satisfies ExportedHandler<Env>;
