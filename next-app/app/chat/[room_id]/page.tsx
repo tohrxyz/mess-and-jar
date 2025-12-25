@@ -130,7 +130,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (messagesLocal) {
-      lastTimestampRef.current = Number(messagesLocal.at(messagesLocal.length - 1)?.date) ?? 0
+      lastTimestampRef.current = Number(messagesLocal.at(messagesLocal.length - 1)?.date) || 0
     }
   }, [messagesLocal])
 
@@ -232,7 +232,7 @@ export default function RoomPage() {
             signature: m.signature,
           })),
         )
-        lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date)
+        lastTimestampRef.current = Number(queriedMessages?.at(queriedMessages.length - 1)?.date) || 0
       }
     }
   }, [queriedMessages, room_id])
