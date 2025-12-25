@@ -115,6 +115,7 @@ export async function handleRoom(request: Request, stub: DurableObjectStub<Chat>
 						room: {
 							id: roomData.id,
 							name: roomData.name,
+							password: roomData.password,
 						},
 					}),
 				);
