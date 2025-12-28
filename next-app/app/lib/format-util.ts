@@ -26,6 +26,8 @@ export function getFileExtensionFromMediaType(val: MediaType) {
     return '.mp4'
   } else if (val === 'audio') {
     return '.webm'
+  } else if (val === 'pdf') {
+    return '.pdf'
   } else {
     return null
   }

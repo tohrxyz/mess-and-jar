@@ -9,4 +9,4 @@ export type Message = {
   isSignatureValid?: boolean
 }
 
-export type MediaType = 'photo' | 'video' | 'audio' | null
+export type MediaType = 'photo' | 'video' | 'audio' | 'pdf' | null

@@ -166,6 +166,8 @@ export default function MessageInput() {
         msgInjected = `${MESSAGE_CODES.PHOTO.START}${newFileId}${MESSAGE_CODES.PHOTO.END}`
       } else if (file.type.startsWith('video')) {
         msgInjected = MESSAGE_CODES.VIDEO.START + newFileId + MESSAGE_CODES.VIDEO.END
+      } else if (file.type === 'application/pdf') {
+        msgInjected = MESSAGE_CODES.PDF.START + newFileId + MESSAGE_CODES.PDF.END
       } else {
         throw new Error('Unsupported media type')
       }
@@ -208,7 +210,7 @@ export default function MessageInput() {
               type="file"
               id="file-input"
               className="hidden"
-              accept="image/*,video/mp4"
+              accept="image/*,video/mp4,.pdf"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) {

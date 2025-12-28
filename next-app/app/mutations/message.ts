@@ -48,18 +48,38 @@ export type UploadMediaResponse = {
 export const mutateUploadMedia = async (binaryData: ArrayBuffer, file_id: string): Promise<UploadMediaResponse> => {
   const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL
 
-  const response = await fetch(`${apiUrl}/upload_media?file_id=${file_id}`, {
+  // 1. Get presigned upload URL from backend
+  const formData = new FormData()
+  formData.append('filename', file_id)
+  formData.append('content_type', 'application/octet-stream')
+
+  const urlResponse = await fetch(`${apiUrl}/get_upload_url`, {
     method: 'POST',
+    body: formData,
+  })
+
+  if (!urlResponse.ok) {
+    return {
+      success: false,
+      message: 'Failed to get upload URL',
+    }
+  }
+
+  const { upload_url } = await urlResponse.json()
+
+  // 2. Upload directly to R2
+  const uploadResponse = await fetch(upload_url, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/octet-stream',
     },
     body: binaryData,
   })
 
-  if (!response.ok) {
+  if (!uploadResponse.ok) {
     return {
       success: false,
-      message: 'Failed to upload media',
+      message: 'Failed to upload media to R2',
     }
   }
 
@@ -76,9 +96,9 @@ export type DownloadMediaResponse = {
 }
 
 export const mutateDownloadMedia = async (file_id: string): Promise<DownloadMediaResponse> => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_BACKEND_URL
+  const r2Url = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 
-  const response = await fetch(`${apiUrl}/download_media?file_id=${file_id}`, {
+  const response = await fetch(`${r2Url}/${file_id}`, {
     method: 'GET',
   })
 

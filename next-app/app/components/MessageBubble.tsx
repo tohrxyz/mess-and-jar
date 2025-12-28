@@ -233,7 +233,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
     const imageElement = imageRef.current
     // Only observe if this is a media message (has image container)
     const isMediaMessage = Boolean(imageSrc) || isImagePlaceholder
-    if (!imageElement || !isMediaMessage || mediaType === 'audio') return
+    if (!imageElement || !isMediaMessage || mediaType === 'audio' || mediaType === 'pdf') return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -298,13 +298,17 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
               ? MESSAGE_CODES.PHOTO.START
               : mediaTypeOrNull === 'video'
                 ? MESSAGE_CODES.VIDEO.START
-                : MESSAGE_CODES.AUDIO.START,
+                : mediaTypeOrNull === 'pdf'
+                  ? MESSAGE_CODES.PDF.START
+                  : MESSAGE_CODES.AUDIO.START,
           END:
             mediaTypeOrNull === 'photo'
               ? MESSAGE_CODES.PHOTO.END
               : mediaTypeOrNull === 'video'
                 ? MESSAGE_CODES.VIDEO.END
-                : MESSAGE_CODES.AUDIO.END,
+                : mediaTypeOrNull === 'pdf'
+                  ? MESSAGE_CODES.PDF.END
+                  : MESSAGE_CODES.AUDIO.END,
         }
         const fileId = message.msg.slice(mediaCodes.START.length, message.msg.length - mediaCodes.END.length)
 
@@ -443,7 +447,7 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
           {imageSrc ? (
             <div
               ref={imageRef}
-              className={`relative ${mediaType === 'audio' ? 'w-64 h-16' : 'w-64 h-96'} ${mediaType === 'photo' ? 'cursor-zoom-in' : ''}`}
+              className={`relative ${mediaType === 'audio' || mediaType === 'pdf' ? 'w-64 h-16' : 'w-64 h-96'} ${mediaType === 'photo' ? 'cursor-zoom-in' : ''}`}
               onClick={() => imageSrc && mediaType === 'photo' && onImageClick(imageSrc)}
             >
               {mediaType === 'photo' ? (
@@ -468,12 +472,26 @@ export const MessageBubble = memo(({ message, isCurrentUser, onImageClick, messa
                 ></video>
               ) : mediaType === 'audio' ? (
                 <AudioComponent audioSrc={imageSrc} />
+              ) : mediaType === 'pdf' ? (
+                <a
+                  href={imageSrc}
+                  download={`document.pdf`}
+                  className="flex items-center gap-3 w-full h-full px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors"
+                >
+                  <svg className="w-8 h-8 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zm-3 9.5c0 .28-.22.5-.5.5h-2v2H7v-5h2.5c.28 0 .5.22.5.5v2zm4 2.5c0 .28-.22.5-.5.5H12v-5h1.5c.28 0 .5.22.5.5v4zm4-2.5c0 .28-.22.5-.5.5H16v1h1v1h-2v-5h2.5c.28 0 .5.22.5.5v2z" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium text-white truncate">PDF Document</span>
+                    <span className="text-xs text-gray-300">{fileSizeRef.current ?? 'Tap to download'}</span>
+                  </div>
+                </a>
               ) : null}
             </div>
           ) : isImagePlaceholder ? (
             <div
               ref={imageRef}
-              className="w-full h-96 bg-gray-600 animate-pulse rounded min-w-64 select-none flex items-center justify-center"
+              className={`bg-gray-600 animate-pulse rounded min-w-64 select-none flex items-center justify-center ${mediaType === 'audio' || mediaType === 'pdf' ? 'w-64 h-16' : 'w-full h-96'}`}
             >
               {!shouldShowImage && (
                 <div className="text-gray-400 text-sm">{isImageInView ? 'Loading...' : 'Scroll to load'}</div>
