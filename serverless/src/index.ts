@@ -2,6 +2,7 @@ import { Chat } from './durable-objects/Chat';
 import { handleAuth } from './handlers/auth';
 import { handleRoom } from './handlers/room';
 import { handleSendMessage, handleEditMessage, handleQueryMessages } from './handlers/message';
+import { handleGetUploadUrl } from './handlers/media';
 import { withCorsHeaders } from './utils/http';
 
 export { Chat };
@@ -34,6 +35,8 @@ export default {
 				return handleEditMessage(request, stub);
 			case '/query_messages':
 				return handleQueryMessages(request, stub);
+			case '/get_upload_url':
+				return handleGetUploadUrl(request, env);
 			default:
 				return withCorsHeaders(
 					Response.json({
